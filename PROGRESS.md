@@ -180,3 +180,42 @@ settings apply, controls reassignment, dev unlock, portrait/landscape letterbox,
 Known: placeholder levels are for flow/testing only (not tuned, several solvability aids unverified); volume slider
 has no effect until Phase 10; the preview pane's screenshots lag one action behind, so frames were forced with
 `Dangle.debug.tick(dt)`.
+
+## Phase 6 — Solo campaigns 1-5, 25 levels (done, Sonnet 5)
+Built: `js/levels/solo-campaigns.js` registers `solo-1-1` .. `solo-5-5` (5 levels each) with real definitions; they
+replace the placeholders of the same ids. Levels are 18-60 R long (18-29 R meadow, 22-46 bamboo, 23-56 caves, 24-52
+salt, 22-60 frozen); the bot's estimate of the time an obstacle-by-obstacle run takes is 35-170 s (a person will be
+slower). Each campaign teaches one idea in level 1, combines it in 2-4, and ends on a longer signature level (5).
+- 1 Sunny Meadow: small steps, drops, valleys, plain gaps 0.5-0.9R, first wall, first rope (1-4), crate step + helper
+  beam gap (1-5). 2 Bamboo Grove: single ropes 1.7-2.0R, rope rows (2 x 1.0-1.1R, 3 x 1.0R), spike floors, beam gaps.
+  3 Lantern Caves (dark): short ledges, beam runs over spikes 2.5-4R, ropes, walls. 4 Salt Flats: long spans (3-rope
+  rows, 3.5R beam gaps), wind rises 2.5-3.5R, crate steps. 5 Frozen Peaks: ice slopes (3R run, rise 0.6-1.0R) + slick
+  shelf, walls up to 3.4R, ropes, beam gaps; big multi-drop finish.
+- New: `gap` aid `'beam'` = a striped helper beam over the pit (span <= 3.5R), the "helper beams on tough spots" of the
+  spec; `beamRun`'s beam now runs 0.9R past the spikes (a hanging head sits ~50 px behind the hand: the old 0.3R left
+  the head over the spikes at the end). `Levels.all()` no longer lists registered levels twice; compiled specs record
+  `segments[i].y0/y1` (floor height around each segment; used by the bots). `type.js` skips 0-size sprites (a hidden
+  pane threw an error). Placeholder generator aligned with the new limits (rope spacing, wind 2.5-3.5R, slope <= 1R).
+- New limits (config.LINT): rope spacing 1.1R for two ropes, 1.0R for three or more; wall 3.5R; wind rise 3.5R;
+  ice slope rise <= 1.0R (new SLOPE_MAX); beam gap span 3.5R (new GAP_BEAM_SPAN_MAX); longest beam 5.25R.
+  All are bot-verified with a margin (`node tools/segment-bots.js --probe` shows the bot also crosses wall 4R, wind
+  4.5R, rope rows 2 x 1.2R and 3 x 1.1R).
+- Not used because a bot could not do them: zigzag ledges up a shaft (the head always ends up under the overhang, so
+  no 'up' levels in campaign 5: its climbs are tall walls and slopes), `trampolineStep` (a hand can't grip the pad,
+  the head barely reaches it), `noGrabClimb`, `mover` gaps, tides (campaigns 6+).
+Verification (all in `node tools/check-all.js`, all green):
+- `tools/bots.js` scripted one-player policies (generators): crawl, walls/steps, drops, plain gap, rope rows (searched
+  release points), beam hang, ice slope, crate + wall. `tools/segment-bots.js`: each obstacle at its limits (28 cases).
+  `tools/level-bot.js`: every obstacle of every authored solo level, with that level's exact options, from a standing
+  start (25 levels, 225 obstacles); ropes are proven by an isolated search bot per rope layout.
+- lint (154 levels, selftest 14 known-bad), smoke (registered + first/last of each campaign), gap bots, camera, saves.
+Findings worth knowing: flat ground is a crawl (grip ahead, pull, swap hands) of about 90 px/s for the bot (61 before it
+compensated the 0.1 rad hand fan: the free LEFT hand aims 0.1 rad above the stick, the right one below); the planning
+figure for tides (LINT.TIDE_SPEED 110) is optimistic, use <= 90 in Phase 7. Rope swings are chaotic: a bot policy that
+crosses a gap from one start fails from a slightly different one (different absolute x is enough), so bot proof of
+ropes = existence of a crossing from the standard stance, not a guarantee for every player; the pump policy of the bot
+barely builds amplitude (found by luck + search), a person will do better or worse. Low steps (0.5-0.9R): hands go up
+the face to just above the lip, then over onto the top, then heave (mantle when a grip is within 22 px of the lip).
+Known / needs your hands: rope timing and how hard ropes are for a human (the levels lean on them in campaign 2 and as
+gaps everywhere), beam hanging over spikes (clearance ~20 px under the beam), ice slope feel, crate steps (about 5 s),
+overall length of the signature levels (56-60 R). Zigzag/up levels are still unproven for Phase 7 or later.

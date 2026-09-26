@@ -42,7 +42,7 @@ window.Dangle = window.Dangle || {};
       ['start', { len: 3 }],
       ['ledge', { len: 2 }],
       ['gap', { w: 1.7, aid: 'rope' }],
-      ['gap', { aid: 'ropes', n: 3, spacing: 1.2 }],
+      ['gap', { aid: 'ropes', n: 3, spacing: 1.0 }],
       ['gap', { w: 5, aid: 'mover', period: 7 }],
       ['iceSlope', { len: 3, rise: 0.8 }],
       ['ledge', { len: 1.5 }],

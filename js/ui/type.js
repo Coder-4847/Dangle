@@ -65,6 +65,7 @@ window.Dangle = window.Dangle || {};
   function text(ctx, str, x, y, size, opts) {
     opts = opts || {};
     const s = sprite(str, size, { fill: opts.fill || '#3a3a48', stroke: opts.stroke || '#fdf0dc', wobble: opts.wobble, grain: opts.grain });
+    if (!s.w || !s.h) return;                   // a zero-size window (hidden pane) has nothing to draw
     let dx = x - s.pad;
     const inner = s.w - 2 * s.pad;
     if (opts.align === 'center') dx = x - inner / 2 - s.pad;

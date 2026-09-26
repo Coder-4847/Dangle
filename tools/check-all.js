@@ -1,5 +1,6 @@
 // Run every automated check: node tools/check-all.js
-// physics stress tests, level linter (+ its selftest), level smoke test, camera maths.
+// physics stress tests, level linter (+ its selftest), scripted-player bots (gaps, segments, whole levels), saves,
+// level smoke test, camera maths.
 const { spawnSync } = require('child_process');
 const path = require('path');
 const checks = [
@@ -7,6 +8,8 @@ const checks = [
   ['level linter selftest', 'lint-levels.js', '--selftest'],
   ['level linter', 'lint-levels.js'],
   ['gap limit bots', 'gap-bots.js'],
+  ['segment bots', 'segment-bots.js'],
+  ['level bot (solo 1-5)', 'level-bot.js'],
   ['saves and unlock rules', 'progress-test.js'],
   ['level smoke test', 'level-smoke.js'],
   ['camera', 'camera-test.js'],

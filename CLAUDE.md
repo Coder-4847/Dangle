@@ -14,7 +14,8 @@ js/lib/matter.min.js      vendored physics (offline)
 js/config.js              ALL tuning constants (Dangle.config)
 js/core/    loop input(gameplay + menu actions, device assignment) camera characters storage(saves+unlocks) (later: audio)
 js/physics/ world player grab surfaces hazards(rules: death/respawn, tides, goal, wind, trampolines)
-js/levels/  builder segments levels(registry+compile) themes campaigns(table + PLACEHOLDER level generator) loader test-levels sandbox
+js/levels/  builder segments levels(registry+compile) themes campaigns(table + PLACEHOLDER level generator) solo-campaigns(real solo 1-5)
+            loader test-levels sandbox
 js/render/  crayon(wobble, grain, sprites) level-layer(pre-rendered static tiles, far layer) scenery characters(head/glove sprites)
             draw-world(movers, crates, ropes) draw-level(flags, liquids, darkness) draw-player particles(Fx + shake)
 js/ui/      type widgets scene menus(manager) screens screens-play(all menu screens) hud; tuning+debug (dev)
@@ -24,6 +25,8 @@ tools/sim-test.js         headless stress run: node tools/sim-test.js [scenario]
 tools/energy-probe.js     which part of the step adds/removes energy in a scenario
 tools/check-all.js        runs ALL checks below; must stay green (run before every commit)
 tools/lint-levels.js      level linter (--selftest guards the linter)   tools/level-smoke.js  load/finish/respawn/unload/20 restarts
+tools/bots.js             scripted one-player policies (crawl, climb, drop, ropes, beams, ice, crates); segment-bots.js (obstacles at
+                          their limits, --probe beyond) and level-bot.js (every obstacle of every authored solo level)
 tools/gap-bots.js         scripted players prove the lint gap limits    tools/camera-test.js  camera maths
 tools/progress-test.js    saves + unlock rules   tools/serve.py  no-cache dev server (preview uses it)
 ```

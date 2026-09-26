@@ -2,8 +2,8 @@
 
 Read this first, then `CLAUDE.md` (rules + folder map), then `PROGRESS.md` (long log of every phase and every
 tuned number), then only the section of `docs/MASTER_PROMPT.md` for the phase you are starting.
-Written at the end of Phase 5. Last commit: `f9d781d Phase 5: Menus, modes, saves, HUD`. Nothing has been pushed
-anywhere (no remote exists yet). Working directory: `C:\Programming\Visual Studio Code\Dangle` (Windows 11).
+Written at the end of Phase 6 (updated from the Phase 5 version). Nothing has been pushed anywhere (no remote exists
+yet); `git log --oneline` shows the phase commits (Phase 6 is the newest). Working directory: `C:\Programming\Visual Studio Code\Dangle` (Windows 11).
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -51,8 +51,8 @@ The master prompt is `docs/MASTER_PROMPT.md` (saved unchanged). The user re-uplo
 | 3 | Level engine | Sonnet 5 | done (`e1a9c6c`) |
 | 4 | Art style + characters | Opus 5.5 (override) | done (`a838af1`) |
 | 5 | Menus, modes, saves, HUD | Sonnet 5 | done (`f9d781d`) |
-| 6 | **Solo campaigns 1-5 (25 levels)** | Sonnet 5 | **NEXT** |
-| 7 | Solo campaigns 6-10 (50 levels) | Sonnet 5 | todo |
+| 6 | Solo campaigns 1-5 (25 levels) | Sonnet 5 | done (`Phase 6: Solo campaigns 1-5`) |
+| 7 | **Solo campaigns 6-10 (50 levels)** | Sonnet 5 | **NEXT** |
 | 8 | Co-op mode + co-op campaigns 1-5 (25) | Opus 5.5 (override) | todo |
 | 9 | Co-op campaigns 6-10 (50) | Sonnet 5 | todo |
 | 10 | Audio, juice, full QA (+ draft README) | Sonnet 5 | todo |
@@ -60,7 +60,7 @@ The master prompt is `docs/MASTER_PROMPT.md` (saved unchanged). The user re-uplo
 | 11 | Final refine + GitHub | Opus 5.5 | todo |
 
 To start the next chat: upload the master prompt, link the folder, and say: *"Read memory.md, CLAUDE.md and
-PROGRESS.md, then Start Phase 6."* (switch to the right model first).
+PROGRESS.md, then Start Phase 7."* (switch to the right model first).
 
 ## 4. Environment gotchas (Windows, this machine)
 
@@ -169,7 +169,7 @@ A level definition: `{ id, name, theme, direction: 'right'|'up', coop, difficult
 Register real levels with `Dangle.Levels.register(def)`; a registered def **overrides the placeholder** with the same
 id (see section 9). Ids for campaign levels: `solo-3-2` / `coop-10-10`.
 
-Segments (right-going): `start{len}`, `ledge{len}`, `gap{w, aid: none|rope|ropes(n,spacing)|mover(period)|chain
+Segments (right-going): `start{len}`, `ledge{len}`, `gap{w, aid: none|rope|ropes(n,spacing)|beam|mover(period)|chain
 (co-op only), floor: spikes|lava|water, land}` (adds an invisible `pit` kill zone), `step{h,len}` (h<0 = drop),
 `wall{h,len}`, `crateStep{h}`, `iceSlope{len,rise,shelf}`, `beamRun{len}` (spikes + overhead helper beam),
 `noGrabClimb{h}`, `trampolineStep{h}`, `windRise{h}`, `tide{len,speed,kind}`, `goal{len}`.
@@ -177,16 +177,20 @@ Up-going: `startUp{width}`, `zigzag{n,dy,ledge}`, `windShaft{h}`, `goalUp`. Bloc
 slick), helper (grabbable striped beam), noGrab, trampoline (not grabbable). A segment must end with `b.markSafe()`
 if a checkpoint may follow; every segment records lint metadata (`b.gap`, `b.rise`, `spec.tides`, `spec.beams`).
 
-**Lint limits** (`config.LINT`, provisional except where noted; REACH units): plain gap 0.9 (bot-verified: 0.9 works,
-1.0 does not), rope gap 2.0 (bot crosses 1.7-2.2, not 2.4), rope-row spacing 1.25 and 0.9 to edges, mover gap 8,
-co-op chain gap 3.4, beam 5, wall 4.5, ledge stack rise 1.1 with tip gap 0.2-0.6 sideways, trampoline rise 3, wind
-rise 4.5, level length 12..140R, min thickness 24 px, tide flood time >= 1.2x crossing time at 110 px/s.
+**Lint limits** (`config.LINT`, REACH units, all bot-verified with a margin; see PROGRESS Phase 6): plain gap 0.9, rope
+gap 2.0 (1.7-2.0 verified), rope rows: 2 ropes 1.1R apart, 3+ ropes 1.0R apart, 0.9R to the edges, helper-beam gap
+span 3.5 (`gap aid:'beam'`), mover gap 8 (unverified), co-op chain gap 3.4 (unverified), beam run/beam length 5.25, wall
+3.5, ledge stack rise 1.1 with tip gap 0.2-0.6 sideways (zigzag: UNPROVEN, see below), trampoline rise 3 (unverified),
+wind rise 3.5, ice slope rise 1.0 (3R run), level length 12..140R, min thickness 24 px, tide flood time >= 1.2x
+crossing time at 110 px/s (optimistic: the bot crawls ~90 px/s, use <= 90 in Phase 7).
 Design lessons: ledges must NOT overlap sideways (an overhang can't be mantled from below); the two hands are not
-interchangeable near an edge; horizontal wind can't carry you across a gap (removed as a gap aid).
+interchangeable near an edge; horizontal wind can't carry you across a gap (removed as a gap aid); flat ground is a
+crawl (~90 px/s), so keep ledges short and let steps, drops, ropes and beams carry the interest.
 
-**NOT verified by bots** (need human playtest, so keep them gentle in Phases 6/7 and ask the user to test):
-zigzag beyond the first ledge, iceSlope, crateStep, trampolineStep, noGrabClimb, beamRun traversal, windRise, mover
-timing.
+**Proven by bots** (Phase 6): plain gaps, single ropes, rope rows, beam gaps, beam runs, walls/steps (0.5-3.5R), drops,
+ice slope + shelf, wind rise, crate step. **NOT verified** (keep out of levels or add a bot first): zigzag ledges up a
+shaft (bot ends under the overhang: no 'up' levels yet), trampolineStep (hand can't grip the pad; head barely touches
+it), noGrabClimb, mover gaps/timing, tides (Phase 6 tides do not exist yet), chain gaps (2 players).
 
 ## 8. Input, menus, saves (Phase 5)
 
@@ -228,6 +232,11 @@ signature "boss-style" level. Difficulty ramps inside each campaign and across c
 Solo levels must be solvable by one player; co-op levels must *require* two (chain bridges, boost throws, hold-open
 plates, two-grab crates, counterweights; co-op-only mechanics are Phase 8).
 
+**Phase 6 status**: `js/levels/solo-campaigns.js` holds the real `solo-1-1`..`solo-5-5` (short helper functions
+`start/goal/ledge/gap/rope/ropes/beamGap/up/down/wall/beamRun/ice/windRise/crate` build the segment lists). Solo
+campaigns 6-10 and all co-op ids are still generated placeholders. Add new files after `campaigns.js` in `index.html`
+and in the file lists of tools/lint-levels.js, level-smoke.js and level-bot.js (bots.js loads its own list).
+
 ## 10. Art (Phase 4)
 
 Flat cream base `#fdf0dc`, crayon look: seeded wobbly outlines (`Crayon.wobble`), one 256 px seamless grain texture,
@@ -243,27 +252,42 @@ blinking); squash-and-stretch and landing dust; pooled particles (600) + subtle 
 ## 11. Automated checks (run `node tools/check-all.js` before every commit; it must print "everything passes")
 
 `tools/sim-test.js` (16 physics stress scenarios in `js/dev/stress.js`; also `index.html?stress=1`),
-`tools/lint-levels.js` (+ `--selftest`, lints all 153 defs), `tools/gap-bots.js`, `tools/progress-test.js` (34 checks),
+`tools/lint-levels.js` (+ `--selftest`, lints all 154 defs), `tools/gap-bots.js`, `tools/segment-bots.js` (28 obstacle
+cases; `--probe` runs cases beyond the limits), `tools/level-bot.js` (every obstacle of every authored solo level),
+`tools/progress-test.js` (34 checks),
 `tools/level-smoke.js` (sample: registered + first/last level of each campaign in both modes; `--all` = all 153 in
 ~55 s: settle, checkpoint, hazard/fall death + timed respawn, completion needs everyone, trampoline/wind/tide/mover
 mechanics, unload leaves 0 bodies, 20 rapid restarts no slowdown/heap growth), `tools/camera-test.js` (13 checks),
 `tools/energy-probe.js` (dev: which step phase adds energy). Physics changes must keep all stress tests green; new
-segments need a lint rule + smoke coverage; new mechanics deserve a bot in `gap-bots.js` style when feasible.
+segments need a lint rule + smoke coverage; new mechanics deserve a policy in `tools/bots.js` + a case in `segment-bots.js` (and a branch in `level-bot.js`).
 
-## 12. Guidance for Phase 6 (Solo campaigns 1-5, 25 levels) and beyond
+**Bot lessons (tools/bots.js)**: policies are generators (`yield` once per step, return true/false; `run` drives them).
+The two hands fan +-0.1 rad around the stick (left up, right down): aim so the FREE hand goes where you want. Crawling
+holds the head ~57 px behind the gripping hand, so approaches to walls/edges stop early; to reach an edge, grip near it
+and push the stick BACK with a ramped magnitude (too strong overshoots across the pit). Mantle when a grip is within
+~22 px of the lip. Rope swings are chaotic (a start 1 px or a different absolute x changes the outcome), so ropes are
+proven by a search over release points from a canonical stance (`placeAt` = checkpoint-respawn stance), never as one
+continuous run. `level-bot.js` does the same for every obstacle, so it proves 'each obstacle is crossable with this
+level's exact options', not a single continuous playthrough. Debug with `TRACE=1 EVERY=30 node tools/level-bot.js <id>`.
 
-- Author campaigns 1-5 (5 levels each) as real definitions, gradually introducing mechanics per section 9/`MASTER_PROMPT`
-  section 6. Every level solo-solvable; each campaign ends on a small signature level; add a few striped helper
-  beams (`helper` blocks) on genuinely tough spots. Run lint + smoke (`--all` at least once per phase) and a
-  load/unload smoke of all 25.
-- Prefer the **verified** aids (plain gap <= 0.9R, rope gap 1.7-2.0R, ropes rows, steps/walls/climbs, spikes/lava pits
-  with those aids, tides at the planned speed). Use unverified mechanics sparingly and flag them to the user for a
-  hands-on playtest; consider adding bots for them (tools/gap-bots.js pattern) and tighten `config.LINT` from the
-  results.
-- If new segments/options are needed, add them to `segments.js`, add lint checks in `tools/lint-levels.js` (plus a
-  known-bad case in its `BAD` selftest list), smoke coverage in `tools/level-smoke.js`, and a line in this file.
-- The user has NOT yet hands-on playtested Phases 1-5: feel (swing strength, climb speed, arm stiffness) was tuned
-  with scripted bots. Expect feedback; main lever is `ARM_FORCE_CAP` (1.9) in the dev panel (`?dev=1`, backtick).
+## 12. Guidance for Phase 7 (Solo campaigns 6-10, 50 levels) and beyond
+
+- Author campaigns 6-10 (10 levels each) in a new `js/levels/solo-campaigns-2.js` (or extend solo-campaigns.js if it
+  stays under ~400 lines) as real definitions: 6 Tidal Ruins (rising water, timed), 7 Clockwork Works (moving
+  platforms), 8 Sky Islands (trampolines, wind, big drops), 9 Ember Depths (lava, no-grab walls, tight routes), 10 The
+  Big Dangle (everything). A step up from 1-5, difficulty ramping inside each campaign, signature level at the end.
+- The mechanics of 6-9 are exactly the UNPROVEN ones (tides, movers, trampolines, no-grab climbs). Before using them,
+  write bot policies + `segment-bots.js` cases (and set/tighten `config.LINT` from the results); if a bot cannot do
+  one, redesign it or drop it (as Phase 6 did with zigzag ledges and trampolineStep). Tide speed: use the crawl speed
+  ~90 px/s or less; wall climbs 4-5 s per 3R; rope crossing is luck-plus-search in bots so keep rope gaps <= 2.0R.
+- Levels are long: flat ground is a ~90 px/s crawl. Keep ledges short (1-1.6R) and length near 30-60R; campaign 6-10
+  levels can be up to ~80R for the signatures.
+- Follow the recipe: lint + `node tools/level-bot.js` (add the new files to its list) + smoke `--all` at least once.
+  If new segments/options are needed: `segments.js`, a lint rule + known-bad case in `tools/lint-levels.js`, smoke
+  coverage, a bot policy, a line here.
+- The user has NOT yet hands-on playtested Phases 1-6: feel (swing strength, climb speed, arm stiffness) and level
+  difficulty were tuned with scripted bots. Expect feedback; main lever is `ARM_FORCE_CAP` (1.9) in the dev panel
+  (`?dev=1`, backtick). Ropes are the least bot-proven part of campaigns 1-5.
 - Phase 8 (co-op, Opus): shared camera already exists; needs chain bridges (`gap aid: 'chain'`, limit 3.4R),
   boost throws, hold-open plates, two-grab crates, counterweights, coordinated respawn already implemented
   (partner respawn needs a grounded partner >= 1R ahead), "both in goal" already implemented, per-player HUD tags
@@ -276,11 +300,12 @@ segments need a lint rule + smoke coverage; new mechanics deserve a bot in `gap-
 - Phase 11 (Opus): visual/feel/level review, code cleanup (keep `?dev=1` tools), finalise README, ask the user for
   repo name/URL + public/private, add GitHub Pages deploy, push only then. `reference/` stays ignored.
 
-## 13. Known issues and honest caveats (as of Phase 5)
+## 13. Known issues and honest caveats (as of Phase 6)
 
 - Hands-on feel is unverified by a human. GPU frame time was never measured (hidden preview pane): the user should
   check the fps in the debug overlay (`~` key; always available) at 1P, 2P zoomed out and in Lantern Caves.
-- All 150 campaign slots are generated placeholders (untuned, flow/testing only). Real levels come in Phases 6-9.
+- Solo 1-5 are authored (25 levels); solo 6-10 and all co-op slots are generated placeholders (untuned, flow/testing
+  only). Real levels come in Phases 7-9. Level HUD title is `Campaign Name N` (no per-level names).
 - Volume setting has no effect until Phase 10. HUD text is functional, not final.
 - `render` code draws per frame with ~0.4 ms CPU worst case measured; tile cache up to 72 MB.
 - Adjacent ground blocks merge visually (outline pass then fill pass); rotated ice slabs leave a small void underneath.

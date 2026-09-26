@@ -5,7 +5,7 @@
 // Runs on plain data only: no Matter, no DOM. Exit code 1 if any level has an error.
 const path = require('path');
 global.window = global;
-for (const f of ['config', 'levels/builder', 'levels/segments', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns']) {
+for (const f of ['config', 'levels/builder', 'levels/segments', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns']) {
   try { require(path.join('..', 'js', f + '.js')); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 }
 const D = global.Dangle;
@@ -107,7 +107,7 @@ function lint(def) {
       if (g.span > LINT.GAP_COOP_MAX * R) err(`${where} exceeds the co-op limit ${LINT.GAP_COOP_MAX}R`);
       continue;
     }
-    const limit = { none: LINT.GAP_PLAIN_MAX, rope: LINT.GAP_ROPE_MAX, ropes: Infinity, mover: LINT.GAP_MOVER_MAX }[g.aid];
+    const limit = { none: LINT.GAP_PLAIN_MAX, rope: LINT.GAP_ROPE_MAX, ropes: Infinity, mover: LINT.GAP_MOVER_MAX, beam: LINT.GAP_BEAM_SPAN_MAX }[g.aid];
     if (limit === undefined) { err(`${where}: unknown aid`); continue; }
     if (g.span > limit * R + 0.5) err(`${where} is wider than one player can cross (max ${limit}R)`);
     if (g.aid === 'ropes') {
@@ -115,7 +115,7 @@ function lint(def) {
       for (let i = 0; i < xs.length - 1; i++) {
         const d = xs[i + 1] - xs[i];
         const edge = i === 0 || i === xs.length - 2;
-        const max = edge ? 0.9 : LINT.GAP_ROPES_STEP_MAX;
+        const max = edge ? 0.9 : (g.ropes.length > 2 ? LINT.GAP_ROPES3_STEP_MAX : LINT.GAP_ROPES_STEP_MAX);
         if (d > max * R + 0.5) err(`${where}: rope ${edge ? 'to edge' : 'spacing'} ${fmt(d)} exceeds ${max}R`);
       }
     }
@@ -126,7 +126,7 @@ function lint(def) {
   for (const b of spec.beams) if (b.x1 - b.x0 > LINT.GAP_BEAM_MAX * R) err(`beam at ${fmt(b.x0)} is ${fmt(b.x1 - b.x0)} long (max ${LINT.GAP_BEAM_MAX}R)`);
 
   // Vertical rises.
-  const riseMax = { wall: LINT.WALL_SOLO_MAX, ledge: LINT.STEP_UP_MAX, wind: LINT.WIND_RISE_MAX, trampoline: LINT.TRAMP_RISE_MAX, slope: 2 };
+  const riseMax = { wall: LINT.WALL_SOLO_MAX, ledge: LINT.STEP_UP_MAX, wind: LINT.WIND_RISE_MAX, trampoline: LINT.TRAMP_RISE_MAX, slope: LINT.SLOPE_MAX };
   for (const r of spec.rises) {
     const max = riseMax[r.kind];
     if (max === undefined) err(`unknown rise kind ${r.kind}`);
@@ -172,6 +172,10 @@ const BAD = [
   ['too short', { direction: 'right', segments: [['start', { len: 2 }], ['goal', { len: 2 }]] }, 'length'],
   ['tide too fast', { direction: 'right', segments: [['start', {}], ['tide', { len: 6, speed: 80 }], ['goal', {}]] }, 'tide'],
   ['ledges too far apart', { direction: 'up', segments: [['startUp', {}], ['zigzag', { n: 3, dy: 1.5 }], ['goalUp', {}]] }, 'ledge rise'],
+  ['beam gap too wide', { direction: 'right', segments: [['start', {}], ['gap', { w: 4.2, aid: 'beam' }], ['ledge', { len: 6 }], ['goal', {}]] }, 'wider than one player'],
+  ['three ropes too far apart', { direction: 'right', segments: [['start', {}], ['gap', { aid: 'ropes', n: 3, spacing: 1.3 }], ['ledge', { len: 6 }], ['goal', {}]] }, 'rope spacing'],
+  ['wall too tall', { direction: 'right', segments: [['start', {}], ['wall', { h: 4.6 }], ['ledge', { len: 6 }], ['goal', {}]] }, 'exceeds'],
+  ['ice slope too steep', { direction: 'right', segments: [['start', {}], ['iceSlope', { rise: 1.6 }], ['ledge', { len: 6 }], ['goal', {}]] }, 'slope rise'],
   ['ledges overlap', { direction: 'up', segments: [['startUp', {}], ['zigzag', { n: 3, ledge: 2.4 }], ['goalUp', {}]] }, 'ledge tips'],
   ['unknown segment', { direction: 'right', segments: [['start', {}], ['banana', {}]] }, 'unknown segment'],
   ['wrong direction', { direction: 'up', segments: [['start', {}]] }, 'right levels'],

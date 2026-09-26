@@ -38,7 +38,7 @@ window.Dangle = window.Dangle || {};
   const OB = {
     gapPlain: (t) => ['gap', { w: 0.5 + 0.4 * t }, 0],
     gapRope: (t) => ['gap', { w: 1.7 + 0.3 * t, aid: 'rope' }, 0],
-    ropes: (t) => ['gap', { aid: 'ropes', n: t > 0.55 ? 3 : 2, spacing: 1.15 }, 0],
+    ropes: (t) => ['gap', { aid: 'ropes', n: t > 0.55 ? 3 : 2, spacing: t > 0.55 ? 1.0 : 1.1 }, 0],
     mover: (t) => ['gap', { w: 3 + 2 * t, aid: 'mover', period: 8 - 2 * t }, 0],
     lavaGap: (t) => ['gap', { w: 0.5 + 0.4 * t, floor: 'lava' }, 0],
     lavaRope: (t) => ['gap', { w: 1.8 + 0.2 * t, aid: 'rope', floor: 'lava' }, 0],
@@ -46,10 +46,10 @@ window.Dangle = window.Dangle || {};
     stepUp: (t) => { const h = 0.5 + 0.6 * t; return ['step', { h, len: 2 }, h]; },
     wall: (t) => { const h = 2 + 1.5 * t; return ['wall', { h }, h]; },
     crate: (t) => { const h = 1.2 + 0.5 * t; return ['crateStep', { h }, h]; },
-    ice: (t) => { const h = 0.6 + 0.5 * t; return ['iceSlope', { len: 3, rise: h }, h]; },
+    ice: (t) => { const h = 0.6 + 0.4 * t; return ['iceSlope', { len: 3, rise: h }, h]; },
     noGrab: (t) => { const h = 2 + 0.8 * t; return ['noGrabClimb', { h }, h]; },
     tramp: (t) => { const h = 1.8 + 0.9 * t; return ['trampolineStep', { h }, h]; },
-    windRise: (t) => { const h = 2.5 + 1.5 * t; return ['windRise', { h }, h]; },
+    windRise: (t) => { const h = 2.5 + 1.0 * t; return ['windRise', { h }, h]; },
     beam: (t) => ['beamRun', { len: 2.5 + 1.5 * t }, 0],
     tide: (t) => ['tide', { len: 3 + 2 * t, kind: 'water' }, 0],
   };

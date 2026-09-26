@@ -41,7 +41,8 @@ window.Dangle = window.Dangle || {};
   });
 
   // A pit with an optional aid, then landing ground.
-  // aid: 'none' (reach across) | 'rope' (one pendulum) | 'ropes' (a row) | 'mover' (sliding bridge)
+  // aid: 'none' (reach across) | 'rope' (one pendulum) | 'ropes' (a row) | 'beam' (helper beam overhead)
+  //      | 'mover' (sliding bridge)
   //      | 'chain' (co-op only: too wide for one player)
   // floor: 'spikes' | 'lava' | 'water' fills the pit bottom with a hazard.
   Segments.add('gap', 'right', (b, o) => {
@@ -71,6 +72,12 @@ window.Dangle = window.Dangle || {};
       // Phase 1 sandbox rope: pivot 310 px above the floor for a 325 px rope).
       const seg = 0.25 * r;
       for (const rx of g.ropes) b.rope(rx, y - (10 * seg - 20), 10, seg, 1.2);
+    }
+    if (aid === 'beam') {
+      // A striped helper beam over the pit, just within reach of a standing player: hang and go hand over hand.
+      // It runs on past the far edge so a hanging player (about 50 px behind the hand) lands on ground.
+      b.block(x0 - 0.3 * r, y - r - 24, w + 1.2 * r, 24, 'helper');
+      b.spec.beams.push({ x0: x0 - 0.3 * r, x1: x1 + 0.9 * r, y: y - r });
     }
     if (aid === 'mover') {
       const platW = 1.3 * r;
@@ -145,8 +152,9 @@ window.Dangle = window.Dangle || {};
     const x0 = b.x;
     b.block(x0, b.y, len, b.D);
     b.hazard('spikes', x0, b.y - 40, len, 40);
-    b.block(x0 - 0.3 * r, b.y - r - 24, len + 0.6 * r, 24, 'helper');
-    b.spec.beams.push({ x0: x0 - 0.3 * r, x1: x0 + len + 0.3 * r, y: b.y - r });
+    // The beam runs on over the landing so a hanging player (about 50 px behind the hand) clears the spikes.
+    b.block(x0 - 0.3 * r, b.y - r - 24, len + 1.2 * r, 24, 'helper');
+    b.spec.beams.push({ x0: x0 - 0.3 * r, x1: x0 + len + 0.9 * r, y: b.y - r });
     b.x += len;
     const land = 1.6 * r;
     b.block(b.x, b.y, land, b.D);

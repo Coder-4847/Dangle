@@ -20,9 +20,10 @@ window.Dangle = window.Dangle || {};
       if (!seg) throw new Error(`${def.id}: unknown segment '${name}'`);
       if (seg.dir !== b.dir) throw new Error(`${def.id}: segment '${name}' is for ${seg.dir} levels, this one goes ${b.dir}`);
       const p0 = b.progress();
+      const y0 = b.y;
       b.safe = false;
       seg.fn(b, opts || {});
-      b.spec.segments.push({ name, p0, p1: b.progress() });
+      b.spec.segments.push({ name, p0, p1: b.progress(), y0, y1: b.y });
       const wantsCp = !(opts && opts.cp === false);
       if (wantsCp && b.safe && b.cpAt && b.progress() - b.lastCp >= c.CHECKPOINT_SPACING * c.REACH) {
         b.checkpoint(b.cpAt.x, b.cpAt.y);
@@ -49,7 +50,7 @@ window.Dangle = window.Dangle || {};
   // Every playable definition: registered ones plus a definition for every campaign slot in both modes.
   function all() {
     const out = defs.slice();
-    if (Dangle.Campaigns) for (const mode of ['solo', 'coop']) for (const id of Dangle.Campaigns.allIds(mode)) out.push(find(id));
+    if (Dangle.Campaigns) for (const mode of ['solo', 'coop']) for (const id of Dangle.Campaigns.allIds(mode)) if (!get(id)) out.push(find(id));
     return out;
   }
 
