@@ -1,5 +1,6 @@
 // Entry point: plays levels (or the physics sandbox) with debug overlay and tuning panel.
-//   ?level=<id>     start on a level (default test-h; 'sandbox' = the Phase 1 strip)
+//   ?level=<id>     start on a level (default: the first registered; 'sandbox' = the Phase 1 strip)
+//   ?theme=<id>     draw any level in another campaign's theme (art preview)
 //   ?stress=1       physics stress-test results; ?stress=<name> plays one scenario live
 // Dev keys: L = next level, R = restart, 1/2 = player count, backtick = panel, P/Esc = pause.
 (function () {
@@ -20,26 +21,40 @@
   const levelList = Dangle.Levels.list().map((d) => ({ id: d.id, name: d.name })).concat([{ id: 'sandbox', name: 'Sandbox (Phase 1)' }]);
   let levelId = params.get('level') || levelList[0].id;
   if (!levelList.some((l) => l.id === levelId)) levelId = levelList[0].id;
+  let themeOverride = Dangle.Themes.ids().indexOf(params.get('theme')) >= 0 ? params.get('theme') : '';
+  const chars = [0, 1];
 
   let W = null;
+  let layer = null;            // pre-rendered static art for the current world
+  let prewarm = false;         // render every visible tile on the first frame after a build
   let playerCount = 2;
   let debugOn = true;          // overlay + tuning panel (backtick toggles)
   let manualPause = false;
   let blurred = false;
   let loop = null;
+  let renderMs = 0;
   const targets = [];          // camera targets, reused every frame
   const tmp = { x: 0, y: 0, a: 0 };
 
   // Match the backing store to CSS size x devicePixelRatio so lines stay sharp on high-DPI screens.
   function resize() {
+    const old = dpr;
     dpr = window.devicePixelRatio || 1;
     viewW = window.innerWidth;
     viewH = window.innerHeight;
     canvas.width = Math.round(viewW * dpr);
     canvas.height = Math.round(viewH * dpr);
+    Dangle.DrawPlayer.setResolution(dpr);
+    if (W && old !== dpr) buildArt();       // tiles are rendered for a pixel density
   }
 
-  // (Re)build the world for the current level. The old world is taken apart first.
+  function buildArt() {
+    if (layer) Dangle.LevelLayer.dispose(layer);
+    layer = Dangle.LevelLayer.build(W, W.themeId, dpr);
+    prewarm = true;
+  }
+
+  // (Re)build the world for the current level. The old world and its art are taken apart first.
   function build() {
     if (W) Dangle.Level.unload(W);
     if (watchScenario && !watchScenario.custom) {
@@ -48,13 +63,17 @@
       restartT = 2.5;
       Dangle.Camera.setLevel(null);
     } else if (levelId === 'sandbox') {
-      W = Dangle.Sandbox.build(playerCount);
+      W = Dangle.Sandbox.build(playerCount, chars);
       Dangle.Camera.setLevel(null);
     } else {
       const spec = Dangle.Levels.spec(levelId);
-      W = Dangle.Level.load(spec, playerCount);
+      W = Dangle.Level.load(spec, playerCount, chars);
       Dangle.Camera.setLevel({ bounds: spec.bounds, goal: spec.goal, direction: spec.direction });
     }
+    W.themeId = themeOverride || W.themeId || 'meadow';
+    buildArt();
+    Dangle.Fx.reset();
+    Dangle.DrawLevel.resetFlags();
     if (Dangle.Tuning.setLevel) Dangle.Tuning.setLevel(levelId);
   }
 
@@ -62,6 +81,11 @@
   function nextLevel(step) {
     const i = levelList.findIndex((l) => l.id === levelId);
     goToLevel(levelList[(i + step + levelList.length) % levelList.length].id);
+  }
+  function setTheme(id) {
+    themeOverride = id;
+    W.themeId = id || (W.level ? W.level.spec.theme : 'meadow');
+    buildArt();
   }
 
   function updatePause() {
@@ -79,6 +103,7 @@
   }
 
   function render(alpha, dt) {
+    const t0 = performance.now();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = cfg.BG_COLOR;
     ctx.fillRect(0, 0, viewW, viewH);
@@ -92,15 +117,25 @@
       if (Math.abs(p.input.aimX) + Math.abs(p.input.aimY) > 0.2 || p.input.grab[0] || p.input.grab[1]) anyInput = true;
     }
     Dangle.Camera.update(dt, targets, viewW, viewH, anyInput);
-    Dangle.Camera.apply(ctx, viewW, viewH, dpr);
+    const cam = Dangle.Camera.cam;
+    Dangle.LevelLayer.drawFar(ctx, layer, cam, viewW, viewH, dpr);
+
+    const sh = Dangle.Fx.shakeOffset();
+    Dangle.Camera.apply(ctx, viewW, viewH, dpr, sh.x, sh.y);
+    const hw = viewW / (2 * cam.scale), hh = viewH / (2 * cam.scale);
     Dangle.DrawLevel.back(ctx, W);
-    Dangle.DrawWorld.draw(ctx, W, alpha);
-    Dangle.DrawLevel.front(ctx, W);
+    Dangle.LevelLayer.draw(ctx, layer, cam.x - hw, cam.y - hh, cam.x + hw, cam.y + hh, prewarm);
+    prewarm = false;
+    Dangle.DrawWorld.draw(ctx, W, alpha, layer);
+    Dangle.DrawLevel.front(ctx, W, dt);
     Dangle.DrawPlayer.draw(ctx, W, alpha);
+    Dangle.Fx.draw(ctx);
+    Dangle.DrawLevel.darkness(ctx, W, layer, cam, viewW, viewH, dpr);
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     Dangle.Hud.draw(ctx, W, viewW, viewH);
-    if (debugOn) Dangle.Debug.draw(ctx, W, 10, 10);
+    renderMs += (performance.now() - t0 - renderMs) * 0.05;
+    if (debugOn) Dangle.Debug.draw(ctx, W, 10, 10, [`render ${renderMs.toFixed(2)} ms   tiles ${layer.tiles.size} (${(layer.bytes / 1e6).toFixed(0)} MB, ${layer.rendered} drawn)   particles ${Dangle.Fx.count()}`]);
     if (session) Dangle.StressUI.drawWatch(ctx, session, 10, viewH - 80);
     if (manualPause || blurred) {
       ctx.fillStyle = 'rgba(253,240,220,0.6)';
@@ -127,6 +162,12 @@
     onPlayers: (n) => { playerCount = n; build(); },
     onLevel: goToLevel,
     levels: levelList,
+    themes: [{ id: '', name: 'Theme: level default' }].concat(Dangle.Themes.ids().map((id) => ({ id, name: 'Theme: ' + Dangle.Themes.get(id).name }))),
+    theme: themeOverride,
+    onTheme: setTheme,
+    characters: Dangle.Characters.list.map((c, i) => ({ id: i, name: c.name })),
+    chars,
+    onChar: (player, i) => { chars[player] = i; build(); },
   });
   Dangle.Tuning.setVisible(debugOn);
   build();
@@ -136,7 +177,10 @@
       if (!session) Dangle.Input.poll(W.players);   // a live stress scenario scripts the inputs
       handleKeys();
       Dangle.Debug.tick(dt, W);
-      if (W.level) W.level.events.length = 0;       // nothing consumes events yet (Phase 4/10 will)
+      Dangle.DrawPlayer.update(W, dt);
+      Dangle.Fx.consume(W);
+      if (W.level) W.level.events.length = 0;
+      Dangle.Fx.update(dt);
       if (session && session.finished && (restartT -= dt) <= 0) build();
     },
     step() {
@@ -147,5 +191,5 @@
   });
 
   // Handy for console poking and the headless tests.
-  Dangle.debug = { get world() { return W; }, build, goToLevel, get loop() { return loop; } };
+  Dangle.debug = { get world() { return W; }, get layer() { return layer; }, build, goToLevel, setTheme, get loop() { return loop; }, render: (a, d) => render(a, d) };
 })();

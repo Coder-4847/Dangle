@@ -95,6 +95,9 @@ Dangle.config = {
     TIDE_SPEED: 110,        // px/s a solo player covers along a tide stretch (planning figure)
   },
 
+  // --- Look ---
+  SCREEN_SHAKE: true,       // subtle shake on big impacts (a Settings toggle in Phase 5)
+
   // --- Camera ---
   CAM_MIN_W: 1000,          // world units always visible horizontally
   CAM_MIN_H: 640,

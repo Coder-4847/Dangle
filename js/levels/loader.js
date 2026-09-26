@@ -5,7 +5,8 @@ window.Dangle = window.Dangle || {};
 (function () {
   const S = () => Dangle.Surfaces;
 
-  function load(spec, playerCount) {
+  // chars: character index per player (Dangle.Characters); defaults to 0, 1.
+  function load(spec, playerCount, chars) {
     const c = Dangle.config;
     const W = Dangle.World.create();
     W.killY = spec.killY;
@@ -39,7 +40,7 @@ window.Dangle = window.Dangle || {};
 
     for (let i = 0; i < playerCount; i++) {
       const sp = spec.spawns[i % spec.spawns.length];
-      Dangle.Player.create(W, i, sp.x, sp.y, Dangle.Looks[i % Dangle.Looks.length]);
+      Dangle.Player.create(W, i, sp.x, sp.y, Dangle.Characters.get(chars ? chars[i] : i));
     }
     return W;
   }
@@ -71,8 +72,4 @@ window.Dangle = window.Dangle || {};
   }
 
   Dangle.Level = { load, unload, census };
-  Dangle.Looks = [
-    { head: '#f2a03d', dark: '#b8691a' },
-    { head: '#5fc4a8', dark: '#2f8a72' },
-  ];
 })();

@@ -10,12 +10,13 @@ window.Dangle = window.Dangle || {};
     stepMs += (W.stepMs - stepMs) * 0.05;
   }
 
-  function draw(ctx, W, x, y) {
+  function draw(ctx, W, x, y, extra) {
     const M = Matter;
     const lines = [
       `${fps.toFixed(0)} fps   physics ${stepMs.toFixed(2)} ms/step`,
       `bodies ${M.Composite.allBodies(W.mworld).length}   constraints ${M.Composite.allConstraints(W.mworld).length}`,
     ];
+    if (extra) for (const l of extra) lines.push(l);
     if (W.level) {
       const L = W.level;
       const cam = Dangle.Camera.cam;

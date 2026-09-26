@@ -1,6 +1,6 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "dangle", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8000"], "port": 8000 }
+    { "name": "dangle", "runtimeExecutable": "python", "runtimeArgs": ["tools/serve.py", "8000"], "port": 8000 }
   ]
 }

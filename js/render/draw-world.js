@@ -1,111 +1,50 @@
-// Placeholder flat-color world drawing (Phase 4 replaces this with the crayon renderer).
+// Dynamic world objects: moving platforms and crates (cached crayon sprites drawn at their
+// interpolated pose) and ropes (a soft two-tone crayon line through the segments).
+// Static geometry is pre-rendered by level-layer.js.
 window.Dangle = window.Dangle || {};
 
 (function () {
-  const FIXED = {
-    crate: ['#d9a15c', '#8a5a2b'],
-    noGrab: ['#454552', '#22222b'],
-    helper: ['#f2c94c', '#3a3a48'],
-  };
   const pose = { x: 0, y: 0, a: 0 };
-  let theme = Dangle.Themes.get('meadow');
+  const pts = new Float32Array(64);
 
-  function colorsFor(kind) {
-    if (FIXED[kind]) return FIXED[kind];
-    if (kind === 'ice') return theme.ice;
-    if (kind === 'trampoline') return [theme.accent, '#3a3a48'];
-    return theme.ground;
-  }
-
-  function poly(ctx, b) {
-    const v = b.vertices;
+  function drawRope(ctx, r, alpha, t) {
+    const n = Math.min(r.bodies.length, 30);
+    pts[0] = r.anchor.x; pts[1] = r.anchor.y;
+    for (let i = 0; i < n; i++) {
+      Dangle.World.pose(r.bodies[i], alpha, pose);
+      pts[2 * i + 2] = pose.x; pts[2 * i + 3] = pose.y;
+    }
+    // Smooth curve through the segment midpoints.
     ctx.beginPath();
-    ctx.moveTo(v[0].x, v[0].y);
-    for (let i = 1; i < v.length; i++) ctx.lineTo(v[i].x, v[i].y);
-    ctx.closePath();
+    ctx.moveTo(pts[0], pts[1]);
+    for (let i = 1; i < n; i++) {
+      const mx = (pts[2 * i] + pts[2 * i + 2]) / 2, my = (pts[2 * i + 1] + pts[2 * i + 3]) / 2;
+      ctx.quadraticCurveTo(pts[2 * i], pts[2 * i + 1], mx, my);
+    }
+    ctx.lineTo(pts[2 * n], pts[2 * n + 1]);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = Dangle.Crayon.shade(t.post, -0.25); ctx.lineWidth = 10; ctx.stroke();
+    ctx.strokeStyle = t.post; ctx.lineWidth = 6.5; ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 2; ctx.stroke();
+    // Knot at the tail, peg at the pivot.
+    ctx.fillStyle = t.post;
+    ctx.beginPath(); ctx.arc(pts[2 * n], pts[2 * n + 1], 6.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = Dangle.Crayon.shade(t.post, -0.35);
+    ctx.beginPath(); ctx.arc(r.anchor.x, r.anchor.y, 9, 0, Math.PI * 2); ctx.fill();
   }
 
-  function drawStatic(ctx, b) {
-    const col = colorsFor(b.dg.kind);
-    poly(ctx, b);
-    ctx.fillStyle = col[0];
-    ctx.fill();
-    if (b.dg.kind === 'noGrab' || b.dg.kind === 'helper') {
-      // Diagonal stripes: dark = "hands slide off this", yellow/black = a helper beam to grab.
+  function draw(ctx, W, alpha, layer) {
+    for (const b of W.drawables) {
+      if (b.dg.kind !== 'crate' && !b.dg.mover) continue;
+      const s = Dangle.LevelLayer.spriteFor(layer, b);
+      Dangle.World.pose(b, alpha, pose);
       ctx.save();
-      poly(ctx, b);
-      ctx.clip();
-      ctx.strokeStyle = b.dg.kind === 'helper' ? '#3a3a48' : '#d9d2c0';
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      const bb = b.bounds;
-      for (let x = bb.min.x - (bb.max.y - bb.min.y); x < bb.max.x; x += 28) {
-        ctx.moveTo(x, bb.max.y);
-        ctx.lineTo(x + (bb.max.y - bb.min.y), bb.min.y);
-      }
-      ctx.stroke();
+      ctx.translate(pose.x, pose.y);
+      if (pose.a) ctx.rotate(pose.a);
+      ctx.drawImage(s.canvas, -b.dg.size.w / 2 - s.pad, -b.dg.size.h / 2 - s.pad, s.w, s.h);
       ctx.restore();
     }
-    poly(ctx, b);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = col[1];
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-  }
-
-  function drawCrate(ctx, b, alpha) {
-    Dangle.World.pose(b, alpha, pose);
-    const s = b.dg.size.w;
-    ctx.save();
-    ctx.translate(pose.x, pose.y);
-    ctx.rotate(pose.a);
-    ctx.fillStyle = FIXED.crate[0];
-    ctx.strokeStyle = FIXED.crate[1];
-    ctx.lineWidth = 4;
-    ctx.lineJoin = 'round';
-    ctx.fillRect(-s / 2, -s / 2, s, s);
-    ctx.strokeRect(-s / 2, -s / 2, s, s);
-    ctx.beginPath();
-    ctx.moveTo(-s / 2, -s / 2); ctx.lineTo(s / 2, s / 2);
-    ctx.moveTo(s / 2, -s / 2); ctx.lineTo(-s / 2, s / 2);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawRope(ctx, r, alpha) {
-    ctx.beginPath();
-    ctx.moveTo(r.anchor.x, r.anchor.y);
-    for (const b of r.bodies) {
-      Dangle.World.pose(b, alpha, pose);
-      ctx.lineTo(pose.x, pose.y);
-    }
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = theme.post;
-    ctx.lineWidth = 8;
-    ctx.stroke();
-    ctx.fillStyle = theme.post;
-    ctx.beginPath();
-    ctx.arc(r.anchor.x, r.anchor.y, 10, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  function draw(ctx, W, alpha) {
-    theme = Dangle.Themes.get(W.themeId);
-    for (const b of W.drawables) {
-      const k = b.dg.kind;
-      if (k === 'head' || k === 'hand') continue;          // drawn by draw-player
-      if (k === 'crate') drawCrate(ctx, b, alpha);
-      else if (b.dg.mover) {
-        // Static geometry drawn at its interpolated offset.
-        Dangle.World.pose(b, alpha, pose);
-        ctx.save();
-        ctx.translate(pose.x - b.position.x, pose.y - b.position.y);
-        drawStatic(ctx, b);
-        ctx.restore();
-      } else if (b.isStatic) drawStatic(ctx, b);
-    }
-    if (W.ropes) for (const r of W.ropes) drawRope(ctx, r, alpha);
+    if (W.ropes) for (const r of W.ropes) drawRope(ctx, r, alpha, layer.theme);
   }
 
   Dangle.DrawWorld = { draw };

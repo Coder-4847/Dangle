@@ -30,6 +30,7 @@ window.Dangle = window.Dangle || {};
   let root = null;
   let defaults = null;
   let levelSelect = null;
+  const charSelects = [];
   const inputs = {};
 
   function copyText(text) {
@@ -83,6 +84,25 @@ window.Dangle = window.Dangle || {};
       for (const l of hooks.levels) { const o = document.createElement('option'); o.value = l.id; o.textContent = l.name; levelSelect.appendChild(o); }
       levelSelect.addEventListener('change', () => { hooks.onLevel(levelSelect.value); levelSelect.blur(); });
       root.appendChild(levelSelect);
+    }
+    const select = (items, value, onPick) => {
+      const s = document.createElement('select');
+      s.className = 'tp-select';
+      for (const it of items) { const o = document.createElement('option'); o.value = it.id; o.textContent = it.name; s.appendChild(o); }
+      s.value = value;
+      s.addEventListener('change', () => { onPick(s.value); s.blur(); });
+      return s;
+    };
+    if (hooks.themes) root.appendChild(select(hooks.themes, hooks.theme, hooks.onTheme));
+    if (hooks.characters) {
+      const row = el('div', 'tp-row');
+      for (let pl = 0; pl < 2; pl++) {
+        const items = hooks.characters.map((c) => ({ id: c.id, name: `P${pl + 1}: ${c.name}` }));
+        const s = select(items, hooks.chars[pl], (v) => hooks.onChar(pl, +v));
+        charSelects.push(s);
+        row.appendChild(s);
+      }
+      root.appendChild(row);
     }
 
     const row1 = el('div', 'tp-row');

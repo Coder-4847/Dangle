@@ -31,7 +31,7 @@ window.Dangle = window.Dangle || {};
     const filter = { group: -(index + 1) };
     const p = {
       index,
-      look,                       // { head, dark } placeholder colors until Phase 4
+      look,                       // character data (Dangle.Characters): colours + head feature
       spawn: { x, y },
       input: { aimX: 0, aimY: 0, grab: [false, false] },
       aim: { m: 0, dx: 0, dy: 0 },// processed aim: magnitude 0..1 and direction

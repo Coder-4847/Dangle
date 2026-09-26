@@ -3,7 +3,7 @@
 const path = require('path');
 global.window = global;
 global.Matter = require('../js/lib/matter.min.js');
-for (const f of ['config', 'core/loop', 'physics/world', 'physics/grab', 'physics/player', 'physics/surfaces', 'levels/sandbox', 'dev/stress']) {
+for (const f of ['config', 'core/characters', 'core/loop', 'physics/world', 'physics/grab', 'physics/player', 'physics/surfaces', 'levels/sandbox', 'dev/stress']) {
   require(path.join('..', 'js', f + '.js'));
 }
 const D = global.Dangle;

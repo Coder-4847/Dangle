@@ -5,12 +5,7 @@ window.Dangle = window.Dangle || {};
 (function () {
   const S = () => Dangle.Surfaces;
 
-  const LOOKS = [
-    { head: '#f2a03d', dark: '#b8691a' },
-    { head: '#5fc4a8', dark: '#2f8a72' },
-  ];
-
-  function build(playerCount) {
+  function build(playerCount, chars) {
     const c = Dangle.config;
     const R = c.REACH;
     const W = Dangle.World.create();
@@ -44,7 +39,7 @@ window.Dangle = window.Dangle || {};
 
     const spawns = [{ x: 120, y: 560 }, { x: 220, y: 560 }];
     for (let i = 0; i < playerCount; i++) {
-      Dangle.Player.create(W, i, spawns[i].x, spawns[i].y, LOOKS[i]);
+      Dangle.Player.create(W, i, spawns[i].x, spawns[i].y, Dangle.Characters.get(chars ? chars[i] : i));
     }
     return W;
   }

@@ -10,10 +10,9 @@ window.Dangle = window.Dangle || {};
   const vx = (b) => Dangle.Player.velX(b);
   const vy = (b) => Dangle.Player.velY(b);
   const speed = (b) => Math.hypot(vx(b), vy(b));
-  const LOOKS = [{ head: '#f2a03d', dark: '#b8691a' }, { head: '#5fc4a8', dark: '#2f8a72' }];
 
   function set(p, ax, ay, l, r) { p.input.aimX = ax; p.input.aimY = ay; p.input.grab[0] = !!l; p.input.grab[1] = !!r; }
-  function player(W, i, x, y) { return P().create(W, i, x, y, LOOKS[i]); }
+  function player(W, i, x, y) { return P().create(W, i, x, y, Dangle.Characters.get(i)); }
   function teleport(b, x, y) { Dangle.World.teleport(b, x, y); }
   function ground(W, x0, x1, y) { S().block(W, x0, y, x1 - x0, 120, 'ground'); }
   function rng(seed) { return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }

@@ -105,9 +105,10 @@ window.Dangle = window.Dangle || {};
   }
 
   // Set the 2D context so world coordinates draw in the right place.
-  function apply(ctx, viewW, viewH, dpr) {
+  // ox, oy: extra screen-space offset (screen shake).
+  function apply(ctx, viewW, viewH, dpr, ox, oy) {
     const s = cam.scale * dpr;
-    ctx.setTransform(s, 0, 0, s, (viewW / 2 - cam.x * cam.scale) * dpr, (viewH / 2 - cam.y * cam.scale) * dpr);
+    ctx.setTransform(s, 0, 0, s, (viewW / 2 - cam.x * cam.scale + (ox || 0)) * dpr, (viewH / 2 - cam.y * cam.scale + (oy || 0)) * dpr);
   }
 
   function worldToScreen(x, y, viewW, viewH, out) {

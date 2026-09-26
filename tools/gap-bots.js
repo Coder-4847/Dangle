@@ -6,7 +6,7 @@
 const path = require('path');
 global.window = global;
 global.Matter = require('../js/lib/matter.min.js');
-for (const f of ['config', 'core/loop', 'physics/world', 'physics/grab', 'physics/player', 'physics/surfaces', 'physics/hazards',
+for (const f of ['config', 'core/characters', 'core/loop', 'physics/world', 'physics/grab', 'physics/player', 'physics/surfaces', 'physics/hazards',
   'levels/builder', 'levels/segments', 'levels/levels', 'levels/themes', 'levels/loader']) require(path.join('..', 'js', f + '.js'));
 const D = global.Dangle;
 const cfg = D.config;

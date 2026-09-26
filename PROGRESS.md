@@ -110,3 +110,35 @@ noGrabClimb, beamRun traversal, windRise, mover timing. Their lint limits are pr
 Known / for later: draw-level is placeholder (no pre-rendered static layer yet: Phase 4); merge seams between
 adjacent ground blocks show as lines; HUD is minimal (Phase 5); events queue (death/checkpoint/bounce/complete) is
 drained by game.js and unused until Phase 4 particles / Phase 10 audio; solo/co-op respawn delays are config values.
+
+## Phase 4 — Art style and characters (done, Opus 5.5 by user choice)
+Built (all original art, reference images used for mood only):
+- `render/crayon.js`: seeded outline wobble (rounded corners, smooth two-sine perimeter noise), one 256 px
+  seamless grain texture (speckles + short crayon streaks) applied with 'source-atop', soft doubled outlines,
+  sprite helper.
+- `render/level-layer.js`: static geometry + spikes + scenery pre-rendered into world-space tiles (384 world units,
+  res = dpr*1.1 clamped 1..2, 2 px overlap against seams), lazy with a budget of 6 tiles/frame, prefetch ring,
+  LRU memory cap 72 MB, first frame after a build renders all visible tiles. Missing tiles are drawn as vectors
+  with the same world-anchored grain (no pop). Blocks: outline pass (wobbly) then fill pass (exact polygon), so
+  touching blocks merge seamlessly; theme surface band (grass/snow/shine), stripes on no-grab (dark) and helper
+  (yellow/black), trampoline marks. Moving platforms and crates are cached sprites. Far layer: pale hills /
+  peaks / dunes / clouds with 35% parallax.
+- `levels/themes.js`: all 10 campaign palettes (ground, edge, top band, ice, far, hazard, water, accent, post,
+  scenery set). Lantern Caves has `dark: true` (half-res veil with soft light around players, lanterns, flags, goal).
+- `render/scenery.js`: 22 sparse accent kinds (tufts, flowers, bamboo, crystals, lanterns, cacti, pines, columns,
+  gears, clouds, embers, bunting...), deterministic, kept away from spawns/flags/goal; "back" items pale and
+  behind geometry so they never read as grabbable.
+- Characters (`core/characters.js` data, `render/characters.js` sprites): Pip (sprout), Moss (beanie), Bluebell
+  (bow), Sunny (propeller cap), Rosie (daisies), Plum (headband). Gloves always blue (L) / red (R), open mitten or
+  fist, grip glow. Panel has P1/P2 character pickers; `Level.load(spec, n, chars)`.
+- `render/draw-player.js`: tapered quadratic arms that sag when slack and thin when stretched; head sprite with
+  landing squash spring, velocity stretch, cosmetic tilt, respawn pop; live face: eyes track aim / gripping hand /
+  partner / motion, blinking; expressions idle, grab, strain, fall, win, pop.
+- `render/particles.js`: pooled (600) dust on landing, sparkle + ring on checkpoints/respawns, puff on death,
+  confetti on completion, bounce puffs; subtle screen shake on hard landings/deaths (config SCREEN_SHAKE).
+- Dev: `?theme=<id>` / panel theme picker previews any level in any theme; `tools/serve.py` no-cache server.
+Verified: all checks green (physics untouched); every tile of test-all renders in all 10 themes with no errors;
+physics is bit-identical with and without rendering/effects between steps (art cannot affect physics); CPU render
+cost ~0.4 ms/frame worst case (caves, zoomed out, 300 particles), tiles 25-70 MB.
+Known: GPU frame time could not be measured in the hidden preview pane (readback stalls there): check the fps in
+the debug overlay on your machine. HUD/title lettering are Phase 5. Faces are drawn, not sprite-cached (cheap).
