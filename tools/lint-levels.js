@@ -192,7 +192,7 @@ function selftest() {
 if (require.main === module) {
   if (process.argv[2] === '--selftest') process.exit(selftest() ? 1 : 0);
   const only = process.argv[2];
-  const defs = D.Levels.list().filter((d) => !only || d.id === only);
+  const defs = D.Levels.all().filter((d) => !only || d.id === only);
   if (!defs.length) { console.log('no levels' + (only ? ' named ' + only : '')); process.exit(1); }
   let bad = 0;
   for (const def of defs) {

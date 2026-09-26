@@ -34,15 +34,24 @@ window.Dangle = window.Dangle || {};
   // Compiled specs are cached; the loader never mutates them.
   function spec(id) {
     if (!cache[id]) {
-      const def = get(id);
+      const def = find(id);
       if (!def) throw new Error('unknown level ' + id);
       cache[id] = compile(def);
     }
     return cache[id];
   }
 
+  // Registered (authored or test) definition only, or a campaign placeholder for a campaign id.
   function get(id) { return defs.find((d) => d.id === id); }
+  function find(id) { return get(id) || (Dangle.Campaigns && Dangle.Campaigns.stub(id)); }
   function list() { return defs.slice(); }
 
-  Dangle.Levels = { register, compile, spec, get, list };
+  // Every playable definition: registered ones plus a definition for every campaign slot in both modes.
+  function all() {
+    const out = defs.slice();
+    if (Dangle.Campaigns) for (const mode of ['solo', 'coop']) for (const id of Dangle.Campaigns.allIds(mode)) out.push(find(id));
+    return out;
+  }
+
+  Dangle.Levels = { register, compile, spec, get, find, list, all };
 })();

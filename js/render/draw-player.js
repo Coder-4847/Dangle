@@ -233,5 +233,42 @@ window.Dangle = window.Dangle || {};
 
   function faceOf(p) { const s = fx.get(p); return s ? s.face : 'idle'; }
 
-  Dangle.DrawPlayer = { update, draw, setResolution, faceOf };
+  // ---- puppets: the same character art without physics (title, menus, character select) ----------
+  function newPuppet(seed) { return { lookX: 0.4, lookY: 0.3, blinkT: 1 + (seed % 3), blink: 0, face: 'idle', q: 0 }; }
+  function puppetUpdate(s, dt) {
+    s.blinkT -= dt;
+    if (s.blinkT <= 0) { s.blink = 0.14; s.blinkT = 2 + Math.random() * 2.5; }
+    if (s.blink > 0) s.blink = Math.max(0, s.blink - dt);
+  }
+  // opts: scale, tilt, stretch (0..1 arm tension), hands [{x,y},{x,y}] (world/screen coords like x,y).
+  function drawPuppet(ctx, ch, s, x, y, hands, opts) {
+    opts = opts || {};
+    const r = Dangle.CharArt.visualR();
+    const sc = opts.scale || 1;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(sc, sc);
+    if (hands) for (let i = 0; i < 2; i++) drawArm(ctx, 0, 0, hands[i].x, hands[i].y, opts.stretch || 0, ch, r);
+    ctx.save();
+    ctx.rotate(opts.tilt || 0);
+    const hs = Dangle.CharArt.headSprite(ch, Math.max(res, 3));
+    ctx.drawImage(hs.canvas, -hs.ox, -hs.oy, hs.w, hs.h);
+    drawFace(ctx, s, opts.tilt || 0, r);
+    ctx.restore();
+    if (hands) {
+      for (let i = 0; i < 2; i++) {
+        const g = Dangle.CharArt.gloveSprite(i, !!opts.closed, Math.max(res, 3));
+        const a = Math.atan2(hands[i].y, hands[i].x);
+        ctx.save();
+        ctx.translate(hands[i].x, hands[i].y);
+        ctx.rotate(a);
+        if (Math.cos(a) < 0) ctx.scale(1, -1);
+        ctx.drawImage(g.canvas, -g.ox, -g.oy, g.w, g.h);
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+  }
+
+  Dangle.DrawPlayer = { update, draw, setResolution, faceOf, newPuppet, puppetUpdate, drawPuppet };
 })();

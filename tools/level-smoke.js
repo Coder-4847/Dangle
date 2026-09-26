@@ -1,4 +1,6 @@
-// Level smoke test: node tools/level-smoke.js [levelId]
+// Level smoke test: node tools/level-smoke.js [levelId | --all]
+// Default: registered levels plus the first and last level of every campaign in both modes.
+// --all: every level (153): about a minute.
 // For every registered level, with 1 and 2 players: load, settle, reach a checkpoint, die in a
 // hazard and respawn, fall out of the world, finish (all players in the goal), unload, and
 // check nothing leaked. Then 20 rapid restarts must not slow down or grow memory.
@@ -172,9 +174,14 @@ function rapidRestarts(id) {
   return { errs, info: `${early.toFixed(0)} -> ${late.toFixed(0)} ms/restart, heap ${growth >= 0 ? '+' : ''}${growth.toFixed(2)} MB` };
 }
 
-const only = process.argv[2];
+const arg = process.argv[2];
+const only = arg && arg !== '--all' ? arg : null;
+const sample = (d) => {
+  const p = D.Campaigns.parse(d.id);
+  return !p || p.n === 1 || p.n === D.Campaigns.list[p.c - 1].levels;
+};
 let failed = 0;
-for (const def of D.Levels.list().filter((d) => !only || d.id === only)) {
+for (const def of D.Levels.all().filter((d) => (only ? d.id === only : arg === '--all' || sample(d)))) {
   const errs = [];
   let info = '';
   try {

@@ -276,5 +276,15 @@ window.Dangle = window.Dangle || {};
     if (L.far.ground && horizon < viewH) ctx.fillRect(0, Math.max(0, horizon), viewW, viewH - Math.max(0, horizon));
   }
 
-  Dangle.LevelLayer = { build, draw, dispose, spriteFor, drawFar, TILE };
+  // Far layer only (menus): cached per theme.
+  const farCache = {};
+  function farOnly(themeId) {
+    if (!farCache[themeId]) {
+      const theme = Dangle.Themes.get(themeId);
+      farCache[themeId] = { theme, far: buildFar(theme, { x0: -6000, x1: 6000, y0: 0, y1: 0 }, themeId) };
+    }
+    return farCache[themeId];
+  }
+
+  Dangle.LevelLayer = { build, draw, dispose, spriteFor, drawFar, farOnly, TILE };
 })();

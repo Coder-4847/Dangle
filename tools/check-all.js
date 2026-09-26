@@ -7,6 +7,7 @@ const checks = [
   ['level linter selftest', 'lint-levels.js', '--selftest'],
   ['level linter', 'lint-levels.js'],
   ['gap limit bots', 'gap-bots.js'],
+  ['saves and unlock rules', 'progress-test.js'],
   ['level smoke test', 'level-smoke.js'],
   ['camera', 'camera-test.js'],
 ];

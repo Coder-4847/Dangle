@@ -47,6 +47,8 @@ window.Dangle = window.Dangle || {};
 
     raf = requestAnimationFrame(frame);
     return {
+      // Run one frame of dt seconds by hand (tests and tools; no requestAnimationFrame needed).
+      advance(dt) { hooks.render(stepper.advance(dt), dt); },
       setPaused(v) { stepper.paused = v; last = performance.now(); },
       isPaused() { return stepper.paused; },
       stop() { cancelAnimationFrame(raf); },

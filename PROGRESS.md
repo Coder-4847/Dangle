@@ -142,3 +142,41 @@ physics is bit-identical with and without rendering/effects between steps (art c
 cost ~0.4 ms/frame worst case (caves, zoomed out, 300 particles), tiles 25-70 MB.
 Known: GPU frame time could not be measured in the hidden preview pane (readback stalls there): check the fps in
 the debug overlay on your machine. HUD/title lettering are Phase 5. Faces are drawn, not sprite-cached (cheap).
+
+## Phase 5 — Menus, modes, saves, HUD (done, Sonnet 5)
+Flow (keyboard, gamepad and mouse all verified end to end): title -> main (Solo, Co-op, How to play, Settings) ->
+character select (P1, then P2 in co-op; P2 can't take P1's character) -> campaigns (10 cards: lock, pips, clean-run
+stars) -> levels (locks, check, best time, star, "new") -> play -> level complete (time, best/new best/first clear,
+no-fall star, Next / Retry / Levels; last level of a campaign says Next campaign) -> next level. Pause (Esc/P/pad Start,
+also automatic when the window loses focus): Resume, Restart, Settings, Levels, Title. Hold R (0.7 s, ring HUD)
+restarts; dev: a tap.
+- Everything is drawn on the canvas in 1280x720 virtual space, letterboxed: crayon panels (cached wobbly sprites),
+  hand-lettered text (`ui/type.js`: original font stack, grain, seeded wobble, cached sprites), theme backdrop with
+  drifting clouds and scenery, the DANGLE lettering hanging from a rope with two characters swinging.
+- Transitions: 0.34 s slide+fade between screens (input locked for the first half, so nothing double-fires), 0.24 s
+  cream wipe on every menu<->game swap (world is built while covered: no pops).
+- Input (`core/input.js`): menu actions up/down/left/right/confirm/back/pause with key-repeat, from either keyboard
+  scheme, gamepad d-pad/stick/A/B/Start, and mouse hover/click; a key tapped between two polls still counts.
+  Device assignment: per player keyboard (auto/WASD+arrows/IJKL/off) and gamepad (auto/1-4/off).
+- Settings (saved in localStorage `dangle.v1.settings`, sanitised on load): volume (stored; audio arrives in
+  Phase 10), tap-to-grab, grab assist, reduce shake, mouse aim, controls (reference diagrams with live key
+  highlight + assignment), erase progress (confirm). Progress in `dangle.v1.progress`: done/best/clean per level id
+  per mode. If localStorage is blocked everything works in memory and the title says progress can't be saved.
+- Unlocks (`core/storage.js`): levels in order, campaign opens when the previous is fully done, modes independent,
+  `?dev=1` unlocks all + overlay/panel + L (next level) + tap-R restart.
+- How to play: a real playground level (`howto`: step, pit, wall, flag) with a strip of three animated cards
+  (Aim / Grab / Pull), keyboard keycaps that light as you press, and a pad hint. No text walls.
+- HUD (`ui/hud.js`): clock, level title during the camera intro, off-screen arrows, co-op player tags above heads,
+  hold-R ring, pause button (click).
+- `levels/campaigns.js`: the campaign table (5x5 + 5x10 levels = 75 per mode) and ids like `solo-3-2`. Every id
+  without an authored definition gets a generated PLACEHOLDER built from the campaign's signature mechanics
+  (deterministic; Frozen Peaks has vertical climbs), so all 150 slots are playable and lint/smoke-clean today.
+  Phases 6-9 replace them by registering real definitions under the same ids.
+Verified: `node tools/check-all.js` green; lint covers all 153 levels; smoke `--all` (153 levels x 1P/2P: settle,
+checkpoint, hazard/fall death + respawn, finish, unload, 20 restarts) passes in ~55 s; progress-test (34 checks:
+unlock chain, best time/clean medal, refresh persistence, corrupt saves, blocked storage); in-browser: keyboard-only
+and pad-only runs title->finish->next level, mouse-only co-op setup, refresh keeps progress, pause/blur/hold-R,
+settings apply, controls reassignment, dev unlock, portrait/landscape letterbox, no console errors.
+Known: placeholder levels are for flow/testing only (not tuned, several solvability aids unverified); volume slider
+has no effect until Phase 10; the preview pane's screenshots lag one action behind, so frames were forced with
+`Dangle.debug.tick(dt)`.

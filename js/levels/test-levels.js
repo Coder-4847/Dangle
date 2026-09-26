@@ -5,6 +5,12 @@ window.Dangle = window.Dangle || {};
 (function () {
   const L = Dangle.Levels;
 
+  // The how-to-play playground: a step, a small pit, a wall, the flag. Loaded by the How to play screen.
+  L.register({
+    id: 'howto', name: 'How to play', theme: 'meadow', direction: 'right', difficulty: 1, seed: 9, hidden: true,
+    segments: [['start', { len: 4 }], ['gap', { w: 0.7 }], ['wall', { h: 2, len: 1.8 }], ['goal', { len: 3 }]],
+  });
+
   L.register({
     id: 'test-h', name: 'Test: Horizontal', theme: 'meadow', direction: 'right', difficulty: 1, seed: 1,
     segments: [
