@@ -11,13 +11,14 @@ Progress log: `PROGRESS.md`. Reference art (mood only, gitignored): `reference/`
 index.html  css/style.css
 js/lib/matter.min.js      vendored physics (offline)
 js/config.js              ALL tuning constants (Dangle.config)
-js/core/    loop input audio storage camera
-js/physics/ world player grab surfaces hazards
-js/levels/  segments themes solo-campaigns coop-campaigns loader
-js/render/  crayon draw-player draw-level particles
-js/ui/      menus hud
+js/core/    loop input camera (later: audio storage)
+js/physics/ world player grab surfaces (later: hazards)
+js/levels/  sandbox (later: segments themes campaigns loader)
+js/render/  draw-world draw-player (later: crayon particles)
+js/ui/      tuning debug (later: menus hud)
 js/game.js                entry point
-tools/lint-levels.js      node level linter
+tools/sim-test.js         headless physics checks: node tools/sim-test.js [scenario]
+tools/lint-levels.js      node level linter (Phase 3)
 docs/  reference/
 ```
 
