@@ -3,6 +3,7 @@
 2D physics co-op platformer (browser, Canvas 2D, Matter.js). A blobby head with two stretchy arms: grab, swing, heave, fling. Inspired by the *formula* of Heave Ho; **no reuse** of its name, art, audio or characters.
 Modes: Solo + local Co-op (2 players). 10 campaigns per mode: campaigns 1-5 = 5 levels, 6-10 = 10 levels (75/mode, 150 total). Fully offline static site, no build step.
 
+**Fresh session? Read `memory.md` first** (full handoff: state, decisions, gotchas, what's next), then this file.
 Full spec: `docs/MASTER_PROMPT.md` (read only the section for the current phase; grep/offset, never the whole file).
 Progress log: `PROGRESS.md`. Reference art (mood only, gitignored): `reference/`.
 
