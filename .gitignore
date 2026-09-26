@@ -1,0 +1,6 @@
+# Third-party reference art: never commit unless the user says so
+reference/
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
