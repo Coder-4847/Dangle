@@ -35,6 +35,9 @@ window.Dangle = window.Dangle || {};
     // Landing block on the far side of the gap (about 2x REACH away from the plateau).
     S().block(W, 1490, 250, 420, 350, 'ground');
 
+    // Moving platform above the landing block: ride it or hang under it.
+    S().mover(W, 1540, 60, 180, 30, { dx: 320, period: 5 });
+
     // No-grab wall: hands slide off it.
     S().block(W, 2080, 300, 60, 300, 'noGrab');
     S().block(W, 2260, 360, 200, 32, 'ground');

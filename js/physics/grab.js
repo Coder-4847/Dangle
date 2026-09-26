@@ -1,6 +1,7 @@
 // Grab system: pins a hand to whatever it touches while grab is held.
 // Forgiveness (essential for feel): a press buffer, contact "coyote" memory, and a
-// tolerance ring slightly bigger than the hand.
+// tolerance ring slightly bigger than the hand. New grips *reel* the hand onto the
+// anchor over a few steps instead of snapping, so grabbing never kicks anything.
 window.Dangle = window.Dangle || {};
 
 (function () {
@@ -14,11 +15,9 @@ window.Dangle = window.Dangle || {};
       held: false,        // input (after toggle processing) on the previous step
       wantT: 0,           // press buffer countdown (s)
       coyoteT: 0,         // time left to still use the last contact (s)
-      lastBody: null,     // last contact, remembered for coyote grabs
-      lastX: 0, lastY: 0, // that contact's anchor, relative to lastBody
+      lastBody: null,     // last contact, remembered for coyote grabs...
+      lastLX: 0, lastLY: 0, // ...as an anchor in that body's local (rotating) frame
       contact: null,      // body touched this step (debug / glow)
-      sensor: null,       // tolerance-ring body used for overlap tests (never added to the world)
-      sensorR: 0,
     };
   }
 
@@ -27,49 +26,83 @@ window.Dangle = window.Dangle || {};
     return c.ASSIST ? c.GRAB_TOLERANCE_ASSIST : c.GRAB_TOLERANCE;
   }
 
-  // Deepest grabbable overlap of the hand's tolerance ring. Returns {body, depth, nx, ny} or null.
-  const best = { body: null, depth: 0, nx: 0, ny: 0 };
-  function findContact(W, p, hand, g) {
-    const tol = tolerance();
-    const r = cfg().HAND_RADIUS + tol;
-    if (!g.sensor || g.sensorR !== r) {
-      g.sensor = M.Bodies.circle(0, 0, r);
-      g.sensorR = r;
+  // Closest point on a convex body's surface to (px, py), allocation-free.
+  // Fills out.x/y (surface point), out.nx/ny (outward normal) and out.dist (<0 = inside).
+  const pt = { x: 0, y: 0 };
+  function closest(b, px, py, out) {
+    if (b.circleRadius) {
+      const dx = px - b.position.x;
+      const dy = py - b.position.y;
+      const d = Math.hypot(dx, dy) || 1e-6;
+      out.nx = dx / d; out.ny = dy / d;
+      out.x = b.position.x + out.nx * b.circleRadius;
+      out.y = b.position.y + out.ny * b.circleRadius;
+      out.dist = d - b.circleRadius;
+      return out;
     }
-    const sensor = g.sensor;
-    M.Body.setPosition(sensor, hand.position);
+    let best = Infinity;
+    let inside = false;
+    pt.x = px; pt.y = py;
+    const parts = b.parts;
+    for (let k = parts.length > 1 ? 1 : 0; k < parts.length; k++) {
+      const v = parts[k].vertices;
+      for (let j = 0; j < v.length; j++) {
+        const a = v[j];
+        const c = v[(j + 1) % v.length];
+        const ex = c.x - a.x;
+        const ey = c.y - a.y;
+        let t = ((px - a.x) * ex + (py - a.y) * ey) / (ex * ex + ey * ey);
+        t = t < 0 ? 0 : t > 1 ? 1 : t;
+        const qx = a.x + ex * t;
+        const qy = a.y + ey * t;
+        const d2 = (px - qx) * (px - qx) + (py - qy) * (py - qy);
+        if (d2 < best) { best = d2; out.x = qx; out.y = qy; }
+      }
+      if (!inside && M.Vertices.contains(v, pt)) inside = true;
+    }
+    const d = Math.sqrt(best);
+    if (d > 1e-6) { out.nx = (px - out.x) / d; out.ny = (py - out.y) / d; }
+    else { const cd = Math.hypot(px - b.position.x, py - b.position.y) || 1; out.nx = (px - b.position.x) / cd; out.ny = (py - b.position.y) / cd; }
+    if (inside) { out.nx = -out.nx; out.ny = -out.ny; out.dist = -d; } else out.dist = d;
+    return out;
+  }
+
+  // Nearest grabbable surface within reach of the hand, or null.
+  const probe = { x: 0, y: 0, nx: 0, ny: 0, dist: 0 };
+  const best = { body: null, x: 0, y: 0, nx: 0, ny: 0, dist: 0 };
+  function findContact(W, p, hand) {
+    const R = cfg().HAND_RADIUS + tolerance();
+    const hx = hand.position.x;
+    const hy = hand.position.y;
     best.body = null;
-    best.depth = 0;
+    best.dist = Infinity;
     const list = W.grabbables;
     for (let i = 0; i < list.length; i++) {
       const b = list[i];
-      if (b === hand || (b.dg.owner === p)) continue;         // never grab yourself
-      if (!M.Bounds.overlaps(b.bounds, sensor.bounds)) continue;
-      const col = M.Collision.collides(b, sensor);
-      if (col && col.depth > best.depth) {
-        best.body = b;
-        best.depth = col.depth;
-        best.nx = col.normal.x;
-        best.ny = col.normal.y;
+      if (b.dg.owner === p) continue;                        // never grab yourself
+      const bb = b.bounds;
+      if (bb.min.x > hx + R || bb.max.x < hx - R || bb.min.y > hy + R || bb.max.y < hy - R) continue;
+      closest(b, hx, hy, probe);
+      if (probe.dist < best.dist) {
+        best.body = b; best.dist = probe.dist;
+        best.x = probe.x; best.y = probe.y; best.nx = probe.nx; best.ny = probe.ny;
       }
     }
-    if (!best.body) return null;
-    // Collision normals aren't consistently oriented; point it from the hand toward the surface.
-    const tx = best.body.position.x - hand.position.x;
-    const ty = best.body.position.y - hand.position.y;
-    if (best.nx * tx + best.ny * ty < 0) { best.nx = -best.nx; best.ny = -best.ny; }
-    return best;
+    return best.body && best.dist <= R ? best : null;
   }
 
+  // Pin the hand so its centre sits at (ax, ay), which moves with `body`. The pin starts at
+  // the current distance and reels in (see updateHand) so nothing is yanked.
   function pinTo(W, g, hand, body, ax, ay) {
     g.pin = M.Constraint.create({
       bodyA: hand, pointA: { x: 0, y: 0 },
       bodyB: body, pointB: { x: ax - body.position.x, y: ay - body.position.y },
-      length: 0,
+      length: Math.hypot(hand.position.x - ax, hand.position.y - ay),
       stiffness: cfg().PIN_STIFFNESS,
       damping: 0,
     });
     g.target = body;
+    g.lastBody = null;
     Dangle.World.addConstraint(W, g.pin);
   }
 
@@ -91,6 +124,7 @@ window.Dangle = window.Dangle || {};
 
     if (g.pin) {
       if (!held) release(W, g);
+      else if (g.pin.length > 0) g.pin.length = Math.max(0, g.pin.length - c.GRAB_REEL * dt);
       g.held = held;
       g.contact = g.target;
       return;
@@ -101,32 +135,33 @@ window.Dangle = window.Dangle || {};
     g.held = held;
     g.coyoteT = Math.max(0, g.coyoteT - dt);
 
-    const hit = findContact(W, p, hand, g);
+    const hit = findContact(W, p, hand);
     g.contact = hit ? hit.body : null;
-    let anchorBody = null;
-    let ax = 0;
-    let ay = 0;
-
     if (hit) {
-      // Snap onto the surface: the ring reaches (tol - depth) px past the hand's own edge.
-      const gap = Math.max(0, tolerance() - hit.depth);
-      ax = hand.position.x + hit.nx * gap;
-      ay = hand.position.y + hit.ny * gap;
-      anchorBody = hit.body;
-      // Remember it in the target's frame so a moment later it still works.
-      g.lastBody = hit.body;
-      g.lastX = ax - hit.body.position.x;
-      g.lastY = ay - hit.body.position.y;
+      // Anchor = where the hand centre sits when just touching the surface.
+      const ax = hit.x + hit.nx * c.HAND_RADIUS;
+      const ay = hit.y + hit.ny * c.HAND_RADIUS;
+      if (g.wantT > 0) { pinTo(W, g, hand, hit.body, ax, ay); return; }
+      // Remember it in the body's rotating frame, so a press a moment later still lands.
+      const b = hit.body;
+      const cs = Math.cos(-b.angle);
+      const sn = Math.sin(-b.angle);
+      const dx = ax - b.position.x;
+      const dy = ay - b.position.y;
+      g.lastBody = b;
+      g.lastLX = cs * dx - sn * dy;
+      g.lastLY = sn * dx + cs * dy;
       g.coyoteT = c.GRAB_COYOTE;
     } else if (g.wantT > 0 && g.coyoteT > 0 && g.lastBody) {
-      const wx = g.lastBody.position.x + g.lastX;
-      const wy = g.lastBody.position.y + g.lastY;
-      if (Math.hypot(wx - hand.position.x, wy - hand.position.y) <= (c.HAND_RADIUS + tolerance()) * 2.5) {
-        anchorBody = g.lastBody; ax = wx; ay = wy;
+      const b = g.lastBody;
+      const cs = Math.cos(b.angle);
+      const sn = Math.sin(b.angle);
+      const ax = b.position.x + cs * g.lastLX - sn * g.lastLY;
+      const ay = b.position.y + sn * g.lastLX + cs * g.lastLY;
+      if (Math.hypot(ax - hand.position.x, ay - hand.position.y) <= (c.HAND_RADIUS + tolerance()) * 2.5) {
+        pinTo(W, g, hand, b, ax, ay);
       }
     }
-
-    if (anchorBody && g.wantT > 0) pinTo(W, g, hand, anchorBody, ax, ay);
   }
 
   function update(W, p, dt) {
@@ -154,5 +189,5 @@ window.Dangle = window.Dangle || {};
     return g.contact ? 'touching' : 'free';
   }
 
-  Dangle.Grab = { newState, update, releaseAll, releaseTargeting, describe, tolerance };
+  Dangle.Grab = { newState, update, releaseAll, releaseTargeting, describe, tolerance, closest };
 })();

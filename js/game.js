@@ -1,4 +1,5 @@
-// Entry point. Phase 1: runs the physics sandbox with debug overlay and tuning panel.
+// Entry point: runs the physics sandbox with debug overlay and tuning panel.
+// ?stress=1 shows the physics stress-test results; ?stress=<name> plays one scenario live.
 (function () {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
@@ -6,6 +7,12 @@
   let viewW = 0;
   let viewH = 0;
   let dpr = 1;
+
+  const stressParam = new URLSearchParams(location.search).get('stress');
+  if (stressParam === '1' || stressParam === 'all') { canvas.style.display = 'none'; Dangle.StressUI.showTable(); return; }
+  const watchScenario = stressParam ? Dangle.Stress.find(stressParam) : null;
+  let session = null;          // live stress scenario (drives inputs itself)
+  let restartT = 0;
 
   let W = null;
   let playerCount = 2;
@@ -26,7 +33,13 @@
   }
 
   function build() {
-    W = Dangle.Sandbox.build(playerCount);
+    if (watchScenario && !watchScenario.custom) {
+      session = Dangle.Stress.session(watchScenario);
+      W = session.W;
+      restartT = 2.5;
+    } else {
+      W = Dangle.Sandbox.build(playerCount);
+    }
     Dangle.Camera.reset();
   }
 
@@ -60,6 +73,7 @@
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (debugOn) Dangle.Debug.draw(ctx, W, 10, 10);
+    if (session) Dangle.StressUI.drawWatch(ctx, session, 10, viewH - 80);
     if (manualPause || blurred) {
       ctx.fillStyle = 'rgba(253,240,220,0.6)';
       ctx.fillRect(0, 0, viewW, viewH);
@@ -89,11 +103,15 @@
 
   loop = Dangle.Loop.start({
     frame(dt) {
-      Dangle.Input.poll(W.players);
+      if (!session) Dangle.Input.poll(W.players);   // a live stress scenario scripts the inputs
       handleKeys();
       Dangle.Debug.tick(dt, W);
+      if (session && session.finished && (restartT -= dt) <= 0) build();
     },
-    step() { Dangle.World.step(W); },
+    step() {
+      if (session) session.step();
+      else Dangle.World.step(W);
+    },
     render,
   });
 

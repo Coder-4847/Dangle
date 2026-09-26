@@ -54,7 +54,8 @@ window.Dangle = window.Dangle || {};
     ctx.save();
     ctx.translate(ph.x, ph.y);
     ctx.scale(pop, pop);
-    ctx.rotate(ph.a);
+    const tilt = p.tiltPrev + (p.tilt - p.tiltPrev) * alpha;
+    ctx.rotate(tilt);
     ctx.beginPath();
     ctx.arc(0, 0, c.HEAD_RADIUS, 0, Math.PI * 2);
     ctx.fillStyle = p.look.head;
@@ -65,8 +66,8 @@ window.Dangle = window.Dangle || {};
     // Eyes look where the arms aim (or at the gripped surface).
     const ex = p.aim.m > 0 ? p.aim.dx : 0;
     const ey = p.aim.m > 0 ? p.aim.dy : 0.3;
-    const cos = Math.cos(-ph.a);
-    const sin = Math.sin(-ph.a);
+    const cos = Math.cos(-tilt);
+    const sin = Math.sin(-tilt);
     const lx = ex * cos - ey * sin;
     const ly = ex * sin + ey * cos;
     for (const s of [-1, 1]) {

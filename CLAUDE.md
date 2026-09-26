@@ -16,10 +16,11 @@ js/physics/ world player grab surfaces (later: hazards)
 js/levels/  sandbox (later: segments themes campaigns loader)
 js/render/  draw-world draw-player (later: crayon particles)
 js/ui/      tuning debug (later: menus hud)
+js/dev/     stress (physics stress scenarios) stress-ui (?stress=1 table, ?stress=<name> live)
 js/game.js                entry point
-tools/sim-test.js         headless physics checks: node tools/sim-test.js [scenario]
+tools/sim-test.js         headless stress run: node tools/sim-test.js [scenario]  (must stay all-PASS)
+tools/energy-probe.js     which part of the step adds/removes energy in a scenario
 tools/lint-levels.js      node level linter (Phase 3)
-docs/  reference/
 ```
 
 ## Conventions
@@ -28,6 +29,13 @@ docs/  reference/
 - Tunable numbers only in `js/config.js`. Level distances relative to `config.REACH`.
 - Deterministic levels: seeded PRNG only. No per-frame allocations in hot loops. localStorage always in try/catch.
 - Dev flags: `?dev=1` (unlock all, debug overlay, `L` next level, `R` restart), backtick toggles debug overlay.
+
+## Physics rules (Phase 2, see PROGRESS.md for why)
+- Matter friction is OFF for players (warm-started = viscous). Heads/hands use `Player.floorFriction` (floors only).
+- Head body never rotates (infinite inertia); face tilt is cosmetic (`p.tilt`).
+- Arm length limit = one-sided `maxOnly` constraint inside Matter's solver (patched in world.js).
+- Every arm force has an equal/opposite reaction on the head. Never add one-sided forces to players.
+- Editing files with python on this machine: always `io.open(..., encoding='utf-8')` (default is cp1252).
 
 ## Quality bar
 Physics feel is the product: reliable grabs, weighty but predictable swings, no jitter/NaN/tunneling. Fixed timestep (1/120) + accumulator + render interpolation, identical at 60/120/144 Hz. Stable 60 fps, zero console errors, clean level load/unload, crisp on high-DPI, correct on resize, auto-pause on blur. Restrained flat visuals.
@@ -38,19 +46,5 @@ Physics feel is the product: reliable grabs, weighty but predictable swings, no 
 - NEVER push to GitHub before Phase 11 and explicit user confirmation.
 - Token discipline: short messages, targeted edits, no re-reading files just written, stay in scope, verify with small scripts / debug overlay.
 
-## Phases
-| # | Name | Model |
-|---|---|---|
-| 0 | Project setup | Sonnet 5 |
-| 1 | Physics sandbox | Sonnet 5 |
-| 2 | Physics hardening and tuning gate | Opus 5.5 |
-| 3 | Level engine | Sonnet 5 |
-| 4 | Art style and characters | Sonnet 5 |
-| 5 | Menus, modes, saves, HUD | Sonnet 5 |
-| 6 | Solo campaigns 1-5 (25 levels) | Sonnet 5 |
-| 7 | Solo campaigns 6-10 (50 levels) | Sonnet 5 |
-| 8 | Co-op mode + campaigns 1-5 (25) | Sonnet 5 |
-| 9 | Co-op campaigns 6-10 (50) | Sonnet 5 |
-| 10 | Audio, juice, full QA | Sonnet 5 |
-| gate | User confirms the game works | - |
-| 11 | Final refine + GitHub | Opus 5.5 |
+## Phases (model)
+0 Setup (Sonnet 5) · 1 Physics sandbox (Sonnet 5) · 2 Physics hardening (**Opus 5.5**) · 3 Level engine · 4 Art + characters · 5 Menus/saves/HUD · 6 Solo camp. 1-5 · 7 Solo camp. 6-10 · 8 Co-op + camp. 1-5 · 9 Co-op camp. 6-10 · 10 Audio/juice/QA (3-10: Sonnet 5) · gate: user confirms · 11 Final refine + GitHub (**Opus 5.5**)

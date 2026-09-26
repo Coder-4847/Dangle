@@ -46,3 +46,14 @@ canvas {
 .tp-slider input { width: 100%; margin: 2px 0 0; }
 .tp-check { display: block; margin: 4px 0; }
 .tp-help { margin: 8px 0 0; font-size: 11px; opacity: 0.75; }
+
+/* Stress-test results page (?stress=1). */
+.stress { position: fixed; inset: 0; overflow: auto; padding: 16px 20px; background: #fdf0dc; font: 13px/1.4 system-ui, sans-serif; color: #2c2c38; }
+.stress h2 { margin: 0 0 4px; }
+.stress table { border-collapse: collapse; width: 100%; max-width: 1100px; }
+.stress td { padding: 6px 8px; border-bottom: 1px solid #e3d3b4; vertical-align: top; }
+.stress .st { font-weight: 700; width: 44px; }
+.stress .ok .st { color: #2f8a3a; }
+.stress .bad .st { color: #c0392b; }
+.stress .nm { width: 130px; font-family: ui-monospace, Consolas, monospace; }
+.stress .desc { opacity: 0.7; }

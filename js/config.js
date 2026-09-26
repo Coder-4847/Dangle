@@ -12,6 +12,8 @@ Dangle.config = {
   POS_ITERATIONS: 10,
   VEL_ITERATIONS: 8,
   CONSTRAINT_ITERATIONS: 8, // chains of players/ropes need this to stay stiff
+  LIMIT_PASSES: 2,          // passes of the post-step arm safety net
+  LIMIT_SLOP: 3,            // px of arm over-stretch the solver may leave before the safety net acts
 
   // --- World ---
   GRAVITY: 1000,            // px/s^2
@@ -23,20 +25,25 @@ Dangle.config = {
   HAND_RADIUS: 11,
   REACH: 130,               // full-stick arm length
   HEAD_MASS: 6,
-  HAND_MASS: 2,             // hands can't be too light or the arm spring gets stiff-unstable
-  HEAD_FRICTION: 0.9,
-  HEAD_FRICTION_STATIC: 1.4,
-  HAND_FRICTION: 1.0,
+  HAND_MASS: 1,             // light hands reach fast; spring stays stable (omega*dt ~0.27)
+  HEAD_GRIP: 0.9,           // head friction on floors, in g (walls are frictionless for players)
+  HAND_GRIP: 2.5,           // hand friction on floors, in g: pushing on the floor doesn't skate
+  SLICK_GRIP_SCALE: 0.08,   // ice / slick surfaces keep this fraction of the grip
   HEAD_AIR_DRAG: 0.003,
   HAND_AIR_DRAG: 0.03,
-  HEAD_UPRIGHT: 40,         // rad/s^2 per rad: torque that keeps the face tilted only a little
-  HEAD_ANG_DAMP: 6,         // 1/s angular damping so the head doesn't spin forever
+  TILT_PER_SPEED: 0.0006,   // cosmetic face lean (rad per px/s of sideways speed)
+  TILT_MAX: 0.35,
 
   // --- Arms (vector spring between head and hand) ---
   ARM_FREQ: 13,             // rad/s stiffness of the aim spring
   ARM_DAMP: 0.7,            // damping ratio
-  ARM_FORCE_CAP: 1.6,       // max pull per arm, in head weights
-  ARM_SPREAD: 0.3,          // radians the two hands fan apart around the aim direction
+  ARM_FORCE_CAP: 1.9,       // max pull of a gripping arm, in head weights (one arm lifts you)
+  FREE_ARM_CAP: 0.45,       // max push of a reaching arm (head weights). Two can't lift the head
+                            // (no hand-walking/hopping), and a blocked reach never undoes a hold
+  RELAX_CAP: 0.3,           // free arm pull at neutral stick, in head weights
+  PINNED_REACH: 0.45,       // gripping arm's aimed length (x REACH): short = real pull-ups
+  PINNED_DAMP: 0.25,        // damping ratio of a gripping arm (low keeps swings alive)
+  ARM_SPREAD: 0.1,          // radians the hands fan apart around the aim (big = one hand can't reach walls)
   ARM_RELAX: 0.12,          // stiffness multiplier when the stick is neutral (arms dangle)
   ARM_RELAX_X: 34,          // relaxed hand offset from the head (px)
   ARM_RELAX_Y: 30,
@@ -49,12 +56,15 @@ Dangle.config = {
   GRAB_BUFFER: 0.09,        // s: pressing just before contact still grabs
   GRAB_COYOTE: 0.09,        // s: contact that was just lost still grabs
   PIN_STIFFNESS: 1,
+  GRAB_REEL: 700,           // px/s a fresh grip reels the hand onto its anchor (no snap)
   TOGGLE_GRAB: false,       // tap to grab, tap to release
   ASSIST: false,            // bigger grab tolerance
 
+  CRATE_FRICTION: 0.06,     // Matter friction (per-iteration, warm-started: strong). 0.06 = draggable
+
   // --- Safety clamps (px/s) ---
   MAX_HEAD_SPEED: 2200,
-  MAX_HAND_SPEED: 2600,
+  MAX_HAND_SPEED: 2400,     // < (24px wall + hand diameter)/2 per step: can't tunnel
 
   // --- Camera (sandbox-level; Phase 3 extends) ---
   CAM_MIN_W: 1000,          // world units always visible horizontally

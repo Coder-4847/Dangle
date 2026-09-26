@@ -11,6 +11,24 @@ window.Dangle = window.Dangle || {};
   // Force = mass * accel(px/s^2) * 1e-6, because Matter integrates in milliseconds.
   const FORCE_K = 1e-6;
 
+  // One-sided constraints: Matter's distance constraints push *and* pull. A constraint created
+  // with `maxOnly: true` acts like a rope instead: it is skipped by the solver while slack.
+  // Solving it inside Matter's iterations keeps arms, grips and ropes consistent with each other.
+  if (!M.Constraint._dangleRope) {
+    const solve = M.Constraint.solve;
+    M.Constraint.solve = function (con, delta) {
+      if (con.maxOnly) {
+        const a = con.bodyA;
+        const b = con.bodyB;
+        const dx = b.position.x + con.pointB.x - a.position.x - con.pointA.x;
+        const dy = b.position.y + con.pointB.y - a.position.y - con.pointA.y;
+        if (dx * dx + dy * dy <= con.length * con.length) return;
+      }
+      solve(con, delta);
+    };
+    M.Constraint._dangleRope = true;
+  }
+
   function create() {
     const engine = M.Engine.create({ enableSleeping: false });
     const W = {
@@ -64,9 +82,12 @@ window.Dangle = window.Dangle || {};
     return player;
   }
 
-  // One fixed physics step. Order matters: decide grabs, apply arm forces, integrate, then clamp.
+  // One fixed physics step. Order matters: decide grabs, apply arm forces, move platforms,
+  // integrate, then enforce hard limits (all players per pass, so chains aren't order-biased),
+  // then safety clamps last.
   function step(W) {
     const c = cfg();
+    const P = Dangle.Player;
     const t0 = performance.now();
     for (let i = 0; i < W.dynamic.length; i++) {
       const b = W.dynamic[i];
@@ -74,10 +95,17 @@ window.Dangle = window.Dangle || {};
     }
     for (const p of W.players) {
       Dangle.Grab.update(W, p, c.STEP);
-      Dangle.Player.preStep(W, p, c.STEP);
+      P.preStep(W, p, c.STEP);
     }
+    Dangle.Surfaces.preStep(W);
     M.Engine.update(W.engine, c.STEP * 1000);
-    for (const p of W.players) Dangle.Player.postStep(W, p, c.STEP);
+    for (const p of W.players) P.guard(W, p);
+    P.floorFriction(W, c.STEP);
+    for (let pass = 0; pass < c.LIMIT_PASSES; pass++) {
+      for (const p of W.players) P.limitArms(p);
+    }
+    Dangle.Surfaces.postStep(W);
+    for (const p of W.players) P.finish(p, c.STEP);
     W.time += c.STEP;
     W.stepMs = performance.now() - t0;
   }

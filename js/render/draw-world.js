@@ -87,7 +87,14 @@ window.Dangle = window.Dangle || {};
       const k = b.dg.kind;
       if (k === 'head' || k === 'hand') continue;          // drawn by draw-player
       if (k === 'crate') drawCrate(ctx, b, alpha);
-      else if (b.isStatic) drawStatic(ctx, b);
+      else if (b.dg.mover) {
+        // Static geometry drawn at its interpolated offset.
+        Dangle.World.pose(b, alpha, pose);
+        ctx.save();
+        ctx.translate(pose.x - b.position.x, pose.y - b.position.y);
+        drawStatic(ctx, b);
+        ctx.restore();
+      } else if (b.isStatic) drawStatic(ctx, b);
     }
     if (W.ropes) for (const r of W.ropes) drawRope(ctx, r, alpha);
   }
