@@ -106,7 +106,7 @@ window.Dangle = window.Dangle || {};
   }
 
   function draw(ctx, W, alpha) {
-    for (const p of W.players) drawPlayer(ctx, p, alpha);
+    for (const p of W.players) if (!p.dead) drawPlayer(ctx, p, alpha);
   }
 
   Dangle.DrawPlayer = { draw };

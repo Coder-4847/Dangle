@@ -94,18 +94,21 @@ window.Dangle = window.Dangle || {};
       b._px = b.position.x; b._py = b.position.y; b._pa = b.angle;
     }
     for (const p of W.players) {
+      if (p.dead) continue;
       Dangle.Grab.update(W, p, c.STEP);
       P.preStep(W, p, c.STEP);
     }
     Dangle.Surfaces.preStep(W);
+    if (W.level) Dangle.Hazards.preStep(W, c.STEP);
     M.Engine.update(W.engine, c.STEP * 1000);
-    for (const p of W.players) P.guard(W, p);
+    for (const p of W.players) if (!p.dead) P.guard(W, p);
     P.floorFriction(W, c.STEP);
     for (let pass = 0; pass < c.LIMIT_PASSES; pass++) {
-      for (const p of W.players) P.limitArms(p);
+      for (const p of W.players) if (!p.dead) P.limitArms(p);
     }
     Dangle.Surfaces.postStep(W);
-    for (const p of W.players) P.finish(p, c.STEP);
+    for (const p of W.players) if (!p.dead) P.finish(p, c.STEP);
+    if (W.level) Dangle.Hazards.postStep(W, c.STEP);
     W.time += c.STEP;
     W.stepMs = performance.now() - t0;
   }

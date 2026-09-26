@@ -66,9 +66,44 @@ Dangle.config = {
   MAX_HEAD_SPEED: 2200,
   MAX_HAND_SPEED: 2400,     // < (24px wall + hand diameter)/2 per step: can't tunnel
 
-  // --- Camera (sandbox-level; Phase 3 extends) ---
+  // --- Levels (Phase 3) ---
+  RESPAWN_DELAY_SOLO: 0.9,  // s between a death and coming back at the last checkpoint
+  RESPAWN_DELAY_COOP: 1.5,
+  TRAMPOLINE_LAUNCH: 900,   // px/s upward on a fresh bounce (apex ~3.1 REACH)
+  TRAMPOLINE_KEEP: 0.9,     // fraction of landing speed kept when it is faster than the launch
+  WIND_LIFT: 1.15,          // default wind column lift, in g (net 0.15 g: a gentle float)
+  KILL_DEPTH: 700,          // px below the lowest floor where falling players respawn
+  CHECKPOINT_SPACING: 5,    // REACH units of safe progress between auto checkpoints
+  PARTNER_SPAWN_LEAD: 1,    // REACH units a partner must be ahead of the checkpoint to respawn beside them
+
+  // Level linter limits (tools/lint-levels.js). Distances are in REACH units. PROVISIONAL until
+  // the solo campaigns are playtested; each aid's limit is the widest span a person can cross.
+  LINT: {
+    GAP_PLAIN_MAX: 0.9,     // plain pit: reach across, grab, mantle (tools/gap-bots.js: 0.9 works, 1.0 does not)
+    GAP_ROPE_MAX: 2.0,      // one pendulum rope over the pit (gap-bots.js crosses 1.7-2.2 with a simple release)
+    GAP_ROPES_STEP_MAX: 1.25,   // spacing between ropes in a row / rope-to-edge distance
+    GAP_MOVER_MAX: 8,       // moving bridge (timing, not reach, is the limit)
+    GAP_COOP_MAX: 3.4,      // chain bridge: two players end to end
+    GAP_BEAM_MAX: 5,        // overhead beam over spikes (hand over hand)
+    WIND_RISE_MAX: 4.5,     // height a wind column carries you
+    TRAMP_RISE_MAX: 3,      // height a trampoline bounce clears (apex is ~3.1)
+    WALL_SOLO_MAX: 4.5,     // hand-over-hand climbable wall height
+    STEP_UP_MAX: 1.1,       // vertical spacing between stacked ledges (tip to tip, diagonal reach)
+    LEDGE_TIP_GAP_MAX: 0.6, // sideways distance between stacked ledge tips
+    LEN_MIN: 12, LEN_MAX: 140,  // total level length
+    MIN_THICK: 24,          // thinner solids can be tunnelled
+    TIDE_SPEED: 110,        // px/s a solo player covers along a tide stretch (planning figure)
+  },
+
+  // --- Camera ---
   CAM_MIN_W: 1000,          // world units always visible horizontally
   CAM_MIN_H: 640,
+  CAM_MAX_W: 2000,          // co-op zoom-out limit; beyond it an arrow points at the player
+  CAM_MAX_H: 1250,
   CAM_MARGIN: 260,
   CAM_SMOOTH: 5,            // 1/s follow speed
+  CAM_LOOKAHEAD: 170,       // px the view leads the players' motion
+  CAM_LOOK_SMOOTH: 2.2,     // 1/s lookahead response (slow so it doesn't jitter)
+  CAM_INTRO_HOLD: 0.7,      // s the intro rests on the goal
+  CAM_INTRO_PAN: 1.8,       // s the intro takes to glide back to the players
 };

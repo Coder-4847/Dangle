@@ -2,12 +2,20 @@
 window.Dangle = window.Dangle || {};
 
 (function () {
-  const COLORS = {
-    ground: ['#8fc17e', '#4d7f4a'],
+  const FIXED = {
     crate: ['#d9a15c', '#8a5a2b'],
     noGrab: ['#454552', '#22222b'],
+    helper: ['#f2c94c', '#3a3a48'],
   };
   const pose = { x: 0, y: 0, a: 0 };
+  let theme = Dangle.Themes.get('meadow');
+
+  function colorsFor(kind) {
+    if (FIXED[kind]) return FIXED[kind];
+    if (kind === 'ice') return theme.ice;
+    if (kind === 'trampoline') return [theme.accent, '#3a3a48'];
+    return theme.ground;
+  }
 
   function poly(ctx, b) {
     const v = b.vertices;
@@ -18,16 +26,16 @@ window.Dangle = window.Dangle || {};
   }
 
   function drawStatic(ctx, b) {
-    const col = COLORS[b.dg.kind] || COLORS.ground;
+    const col = colorsFor(b.dg.kind);
     poly(ctx, b);
     ctx.fillStyle = col[0];
     ctx.fill();
-    if (b.dg.kind === 'noGrab') {
-      // Diagonal warning stripes tell the player "hands slide off this".
+    if (b.dg.kind === 'noGrab' || b.dg.kind === 'helper') {
+      // Diagonal stripes: dark = "hands slide off this", yellow/black = a helper beam to grab.
       ctx.save();
       poly(ctx, b);
       ctx.clip();
-      ctx.strokeStyle = '#d9d2c0';
+      ctx.strokeStyle = b.dg.kind === 'helper' ? '#3a3a48' : '#d9d2c0';
       ctx.lineWidth = 6;
       ctx.beginPath();
       const bb = b.bounds;
@@ -51,8 +59,8 @@ window.Dangle = window.Dangle || {};
     ctx.save();
     ctx.translate(pose.x, pose.y);
     ctx.rotate(pose.a);
-    ctx.fillStyle = COLORS.crate[0];
-    ctx.strokeStyle = COLORS.crate[1];
+    ctx.fillStyle = FIXED.crate[0];
+    ctx.strokeStyle = FIXED.crate[1];
     ctx.lineWidth = 4;
     ctx.lineJoin = 'round';
     ctx.fillRect(-s / 2, -s / 2, s, s);
@@ -73,16 +81,17 @@ window.Dangle = window.Dangle || {};
     }
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#6d4a2f';
+    ctx.strokeStyle = theme.post;
     ctx.lineWidth = 8;
     ctx.stroke();
-    ctx.fillStyle = '#4a3220';
+    ctx.fillStyle = theme.post;
     ctx.beginPath();
     ctx.arc(r.anchor.x, r.anchor.y, 10, 0, Math.PI * 2);
     ctx.fill();
   }
 
   function draw(ctx, W, alpha) {
+    theme = Dangle.Themes.get(W.themeId);
     for (const b of W.drawables) {
       const k = b.dg.kind;
       if (k === 'head' || k === 'hand') continue;          // drawn by draw-player

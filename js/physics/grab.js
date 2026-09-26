@@ -79,7 +79,8 @@ window.Dangle = window.Dangle || {};
     const list = W.grabbables;
     for (let i = 0; i < list.length; i++) {
       const b = list[i];
-      if (b.dg.owner === p) continue;                        // never grab yourself
+      const own = b.dg.owner;
+      if (own === p || (own && own.dead)) continue;          // never grab yourself or the dead
       const bb = b.bounds;
       if (bb.min.x > hx + R || bb.max.x < hx - R || bb.min.y > hy + R || bb.max.y < hy - R) continue;
       closest(b, hx, hy, probe);

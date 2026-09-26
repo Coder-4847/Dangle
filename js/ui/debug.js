@@ -16,9 +16,15 @@ window.Dangle = window.Dangle || {};
       `${fps.toFixed(0)} fps   physics ${stepMs.toFixed(2)} ms/step`,
       `bodies ${M.Composite.allBodies(W.mworld).length}   constraints ${M.Composite.allConstraints(W.mworld).length}`,
     ];
+    if (W.level) {
+      const L = W.level;
+      const cam = Dangle.Camera.cam;
+      lines.push(`${L.id}  checkpoint ${L.checkpoint + 1}/${L.spec.checkpoints.length}  t ${L.started ? (L.t - L.startT).toFixed(1) : '-'}s  ${L.complete ? 'COMPLETE' : ''}  cam x${cam.scale.toFixed(2)}`);
+    }
     for (const p of W.players) {
       const sp = Math.hypot(Dangle.Player.velX(p.head), Dangle.Player.velY(p.head));
-      lines.push(`P${p.index + 1}  L:${Dangle.Grab.describe(p.grab[0])}  R:${Dangle.Grab.describe(p.grab[1])}  speed ${sp.toFixed(0)}  arms ${p.stretch[0].toFixed(2)}/${p.stretch[1].toFixed(2)}  resp ${p.respawns}`);
+      if (p.dead) { lines.push(`P${p.index + 1}  dead, back in ${Math.max(0, p.deadT).toFixed(1)}s  (deaths ${p.deaths})`); continue; }
+      lines.push(`P${p.index + 1}  L:${Dangle.Grab.describe(p.grab[0])}  R:${Dangle.Grab.describe(p.grab[1])}  speed ${sp.toFixed(0)}  arms ${p.stretch[0].toFixed(2)}/${p.stretch[1].toFixed(2)}  deaths ${p.deaths}`);
     }
     ctx.font = '12px ui-monospace, Consolas, monospace';
     ctx.textBaseline = 'top';

@@ -29,6 +29,7 @@ window.Dangle = window.Dangle || {};
 
   let root = null;
   let defaults = null;
+  let levelSelect = null;
   const inputs = {};
 
   function copyText(text) {
@@ -74,7 +75,15 @@ window.Dangle = window.Dangle || {};
     const c = Dangle.config;
     defaults = Object.assign({}, c);
     root = el('div', 'tuning');
-    root.appendChild(el('h3', '', 'Tuning'));
+    root.appendChild(el('h3', '', 'Level & tuning'));
+
+    if (hooks.levels) {
+      levelSelect = document.createElement('select');
+      levelSelect.className = 'tp-select';
+      for (const l of hooks.levels) { const o = document.createElement('option'); o.value = l.id; o.textContent = l.name; levelSelect.appendChild(o); }
+      levelSelect.addEventListener('change', () => { hooks.onLevel(levelSelect.value); levelSelect.blur(); });
+      root.appendChild(levelSelect);
+    }
 
     const row1 = el('div', 'tp-row');
     row1.appendChild(button('1P', () => hooks.onPlayers(1)));
@@ -130,6 +139,7 @@ window.Dangle = window.Dangle || {};
   }
 
   function setVisible(v) { root.style.display = v ? 'block' : 'none'; }
+  function setLevel(id) { if (levelSelect) levelSelect.value = id; }
 
-  Dangle.Tuning = { init, setVisible, refresh };
+  Dangle.Tuning = { init, setVisible, refresh, setLevel };
 })();

@@ -77,3 +77,36 @@ Sandbox additions: moving platform over the landing block. Stress scripts double
 Known issues / for later phases: grab contact search is O(grabbables) per hand per step (fine now; Phase 3 may add
 a broadphase if levels get large). frameRate: 30 Hz deviates up to ~11-24 px on a pumped swing (one frame of
 input latency, expected). Feel is verified by scripted bots only; needs the user's hands-on playtest.
+
+## Phase 3 — Level engine (done, Sonnet 5)
+Built: levels are data. `segments.js` (library) -> `builder.js` (plain-JSON spec, no Matter/DOM, deterministic) ->
+`levels.js` (registry + compile, checkpoint auto-placement every 5R of safe progress) -> `loader.js` (spec -> world,
+unload, census) -> `physics/hazards.js` (per-step rules). Camera rewritten (`core/camera.js`). Throwaway levels in
+`test-levels.js`: test-h (horizontal), test-v (vertical), test-all (every mechanic). Old sandbox stays as level `sandbox`.
+- Segments: start, ledge, gap(aid none|rope|ropes|mover|chain(co-op only)), step/wall, crateStep, iceSlope,
+  beamRun (spikes + overhead beam), noGrabClimb, trampolineStep, windRise, tide, goal; up-levels: startUp, zigzag,
+  windShaft, goalUp. Kinds: ground, ice (slick, grabbable), helper (striped beam), noGrab, trampoline; movers, ropes,
+  crates, hazards (spikes/lava/water/invisible pit), wind zones, rising tides.
+- Death/respawn: dying removes the player's bodies + arm constraints from the world (nothing can touch/pin/pull
+  them), timer RESPAWN_DELAY_SOLO 0.9 s / COOP 1.5 s, revive at last checkpoint or beside a grounded partner who
+  is >= 1R ahead of it. Tides reset when someone is revived. Complete = all players alive and inside the goal.
+- Camera: follow + slow lookahead along the travel axis, level bounds clamp, co-op fit with zoom cap CAM_MAX_W/H and
+  edge arrows (HUD) beyond it, intro hold on goal then glide back (any input skips after 0.5 s).
+- Fixes found on the way: WORLD_LIMIT (6000) killed players in long levels -> per-level limits; trampolines must
+  launch the hands too or the head is dragged back (apex 215 -> ~400 px); wind gaps can't be crossed horizontally, so
+  the 'wind' gap aid was replaced by `windRise` (updraft beside a wall).
+Automated checks (`node tools/check-all.js`, all green): physics stress (16), linter selftest (10 known-bad levels
+rejected), linter (3 levels), gap-bots, level-smoke (each level x 1P/2P: settle, checkpoint, hazard death + timed
+respawn, fall death, completion needs everyone, trampoline/wind/tide/mover behave, unload leaves 0 bodies, 20 rapid
+restarts: ~3-8 ms each, no slowdown, heap flat), camera (13 checks).
+Lint limits (config.LINT, REACH units): plain gap 0.9 (bot crosses 0.9, not 1.0), rope gap 2.0 (bot crosses 1.7-2.2,
+not 2.4), rope-row spacing 1.25, wall 4.5, ledge stack rise 1.1 with tip gap 0.2-0.6, trampoline rise 3, wind rise
+4.5, tide flood time >= 1.2 x crossing time at 110 px/s.
+Design lessons: ledges must not overlap sideways (an overhang can't be mantled from below: the head ends up under
+it) -> zigzag ledges are 1.8R wide with 0.4R between tips, 1.0R apart vertically; the two hands are not equivalent
+near an edge (spread), players will use whichever reaches.
+NOT verified by bots (needs your hands): zigzag beyond the first ledge, iceSlope, crateStep, trampolineStep,
+noGrabClimb, beamRun traversal, windRise, mover timing. Their lint limits are provisional (Phase 6/7 playtest).
+Known / for later: draw-level is placeholder (no pre-rendered static layer yet: Phase 4); merge seams between
+adjacent ground blocks show as lines; HUD is minimal (Phase 5); events queue (death/checkpoint/bounce/complete) is
+drained by game.js and unused until Phase 4 particles / Phase 10 audio; solo/co-op respawn delays are config values.

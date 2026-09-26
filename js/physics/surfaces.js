@@ -6,19 +6,25 @@ window.Dangle = window.Dangle || {};
   const M = Matter;
   const reg = (W, b, kind, o) => Dangle.World.register(W, b, kind, o);
 
-  // Static rectangle given by its top-left corner. kind: 'ground' (grabbable) | 'noGrab'.
-  function block(W, x, y, w, h, kind) {
+  // Static rectangle given by its top-left corner (or, with opts.angle, its centre-preserving
+  // rotation in radians). kind: 'ground' | 'ice' (grabbable, slick for players) | 'helper'
+  // (grabbable beam) | 'noGrab' (hands slide off) | 'trampoline' (bounces, not grabbable).
+  function block(W, x, y, w, h, kind, opts) {
     kind = kind || 'ground';
+    opts = opts || {};
     const noGrab = kind === 'noGrab';
     const b = M.Bodies.rectangle(x + w / 2, y + h / 2, w, h, {
       isStatic: true,
       // Matter's "static" friction fully cancels slow sliding below a threshold that scales with
       // the pair's max frictionStatic; keep it low or heads stick-slip crawl up walls.
-      friction: noGrab ? 0.03 : 1,
-      frictionStatic: noGrab ? 0.03 : 0.2,
+      friction: noGrab || kind === 'ice' ? 0.03 : 1,
+      frictionStatic: noGrab || kind === 'ice' ? 0.03 : 0.2,
       restitution: 0,
     });
-    return reg(W, b, kind, { grabbable: !noGrab, size: { w, h } });
+    if (opts.angle) M.Body.setAngle(b, opts.angle);
+    reg(W, b, kind, { grabbable: !noGrab && kind !== 'trampoline', size: { w, h } });
+    if (kind === 'ice') b.dg.slick = true;
+    return b;
   }
 
   // Pushable, grabbable box. Its centre is at (x, y).

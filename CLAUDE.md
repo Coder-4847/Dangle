@@ -12,15 +12,17 @@ index.html  css/style.css
 js/lib/matter.min.js      vendored physics (offline)
 js/config.js              ALL tuning constants (Dangle.config)
 js/core/    loop input camera (later: audio storage)
-js/physics/ world player grab surfaces (later: hazards)
-js/levels/  sandbox (later: segments themes campaigns loader)
-js/render/  draw-world draw-player (later: crayon particles)
-js/ui/      tuning debug (later: menus hud)
+js/physics/ world player grab surfaces hazards(rules: death/respawn, tides, goal, wind, trampolines)
+js/levels/  builder segments levels(registry+compile) themes loader(load/unload) test-levels sandbox
+js/render/  draw-world draw-level draw-player (later: crayon particles)
+js/ui/      tuning debug hud (later: menus)
 js/dev/     stress (physics stress scenarios) stress-ui (?stress=1 table, ?stress=<name> live)
 js/game.js                entry point
 tools/sim-test.js         headless stress run: node tools/sim-test.js [scenario]  (must stay all-PASS)
 tools/energy-probe.js     which part of the step adds/removes energy in a scenario
-tools/lint-levels.js      node level linter (Phase 3)
+tools/check-all.js        runs ALL checks below; must stay green (run before every commit)
+tools/lint-levels.js      level linter (--selftest guards the linter)   tools/level-smoke.js  load/finish/respawn/unload/20 restarts
+tools/gap-bots.js         scripted players prove the lint gap limits    tools/camera-test.js  camera maths
 ```
 
 ## Conventions
@@ -35,6 +37,7 @@ tools/lint-levels.js      node level linter (Phase 3)
 - Head body never rotates (infinite inertia); face tilt is cosmetic (`p.tilt`).
 - Arm length limit = one-sided `maxOnly` constraint inside Matter's solver (patched in world.js).
 - Every arm force has an equal/opposite reaction on the head. Never add one-sided forces to players.
+- Levels are data: segments (js/levels/segments.js) -> spec (plain JSON) -> loader -> world. New segment = add fn + lint rule + smoke coverage. Distances in REACH units.
 - Editing files with python on this machine: always `io.open(..., encoding='utf-8')` (default is cp1252).
 
 ## Quality bar

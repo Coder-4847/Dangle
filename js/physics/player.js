@@ -38,6 +38,8 @@ window.Dangle = window.Dangle || {};
       grab: [Dangle.Grab.newState(), Dangle.Grab.newState()],
       popT: 0,                    // >0 while the respawn pop animation plays
       respawns: 0,
+      dead: false, deadT: 0,      // levels: out of the world until the respawn timer runs out
+      deaths: 0,
       stretch: [0, 0],            // arm stretch 0..1 (drawing + debug)
       tilt: 0, tiltPrev: 0,       // cosmetic face tilt (rad); the physics head never rotates
       tiltVel: 0,
@@ -226,11 +228,13 @@ window.Dangle = window.Dangle || {};
   }
 
   // NaN / out-of-bounds / broken-arm check. Returns true when the player is sane.
-  function healthy(p) {
+  function healthy(W, p) {
     const c = cfg();
+    const killY = W.killY === undefined ? c.KILL_Y : W.killY;
+    const lim = W.limits || { minX: -c.WORLD_LIMIT, maxX: c.WORLD_LIMIT, minY: -c.WORLD_LIMIT };
     for (const b of p.bodies) {
       if (!finite(b)) return false;
-      if (Math.abs(b.position.x) > c.WORLD_LIMIT || b.position.y > c.KILL_Y || b.position.y < -c.WORLD_LIMIT) return false;
+      if (b.position.x < lim.minX || b.position.x > lim.maxX || b.position.y > killY || b.position.y < lim.minY) return false;
     }
     const far = c.REACH * 3;
     for (const h of p.hands) {
@@ -241,8 +245,8 @@ window.Dangle = window.Dangle || {};
 
   // After the engine step: respawn broken players. Returns true if the player was respawned.
   function guard(W, p) {
-    if (healthy(p)) return false;
-    respawn(W, p);
+    if (healthy(W, p)) return false;
+    die(W, p, 'fell');
     return true;
   }
 
@@ -305,17 +309,47 @@ window.Dangle = window.Dangle || {};
     p.tilt += p.tiltVel * dt;
   }
 
-  function respawn(W, p) {
+  // Put the player back together at (x, y) with everything at rest, and play the pop.
+  function place(W, p, x, y) {
     const c = cfg();
     Dangle.Grab.releaseAll(W, p);
     Dangle.Grab.releaseTargeting(W, p.bodies);
-    Dangle.World.teleport(p.head, p.spawn.x, p.spawn.y);
-    Dangle.World.teleport(p.hands[0], p.spawn.x - c.ARM_RELAX_X, p.spawn.y + c.ARM_RELAX_Y);
-    Dangle.World.teleport(p.hands[1], p.spawn.x + c.ARM_RELAX_X, p.spawn.y + c.ARM_RELAX_Y);
+    Dangle.World.teleport(p.head, x, y);
+    Dangle.World.teleport(p.hands[0], x - c.ARM_RELAX_X, y + c.ARM_RELAX_Y);
+    Dangle.World.teleport(p.hands[1], x + c.ARM_RELAX_X, y + c.ARM_RELAX_Y);
     p.tilt = p.tiltPrev = p.tiltVel = 0;
     p.popT = 0.4;
+  }
+
+  // Immediate reset at p.spawn (sandbox and tests).
+  function respawn(W, p) {
+    place(W, p, p.spawn.x, p.spawn.y);
     p.respawns++;
   }
 
-  Dangle.Player = { create, applyConfig, preStep, guard, limitArms, finish, floorFriction, respawn, velX, velY, setVel, LEFT, RIGHT };
+  // Death. In a level the player leaves the world (bodies and arm constraints removed, so
+  // nothing can touch, pin to, or be pulled by them) until the level's respawn timer revives them.
+  function die(W, p, cause) {
+    if (p.dead) return;
+    if (!W.level) { respawn(W, p); return; }
+    Dangle.Grab.releaseAll(W, p);
+    Dangle.Grab.releaseTargeting(W, p.bodies);
+    for (const b of p.bodies) M.Composite.remove(W.mworld, b);
+    for (const a of p.arms) M.Composite.remove(W.mworld, a);
+    p.dead = true;
+    p.deadT = W.players.length > 1 ? cfg().RESPAWN_DELAY_COOP : cfg().RESPAWN_DELAY_SOLO;
+    p.deaths++;
+    W.level.events.push({ type: 'death', player: p.index, cause, x: p.head.position.x, y: p.head.position.y });
+  }
+
+  function revive(W, p, x, y) {
+    for (const b of p.bodies) M.Composite.add(W.mworld, b);
+    for (const a of p.arms) M.Composite.add(W.mworld, a);
+    place(W, p, x, y);
+    p.dead = false;
+    p.respawns++;
+    W.level.events.push({ type: 'revive', player: p.index, x, y });
+  }
+
+  Dangle.Player = { create, applyConfig, preStep, guard, limitArms, finish, floorFriction, respawn, die, revive, velX, velY, setVel, LEFT, RIGHT };
 })();
