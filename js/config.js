@@ -110,6 +110,11 @@ Dangle.config = {
     BOUNCE_DROP: [0.8, 1.4],   // how far the pad may be below the ledge you drop from
   },
 
+  // --- Audio (Phase 10): synthesized Web Audio SFX, no files (js/core/audio.js). ---
+  AUDIO_MASTER_TRIM: 0.85,     // overall headroom below the volume slider's 100%, so stacked sounds don't clip
+  AUDIO_CREAK_STRETCH: 0.88,   // arm stretch fraction (of max) above which a held grip creaks
+  AUDIO_CREAK_COOLDOWN: 1.3,   // s between creak sounds per player, however long the grip is held
+
   // --- Look ---
   SCREEN_SHAKE: true,       // subtle shake on big impacts (a Settings toggle in Phase 5)
 

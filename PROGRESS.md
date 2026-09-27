@@ -325,3 +325,89 @@ All 50 new levels load in the browser with 2 players and no console errors.
 Known / needs your hands: same caveats as Phases 6-8 (nobody has played any of this by hand yet); 10-10 in particular
 is long enough that its pace on one keyboard is worth checking; lever lifts above ~4R make for a long ride with
 nothing to do but wait, worth a feel check.
+
+## Phase 10 — Audio, juice, and full QA (done, Sonnet 5)
+Built: `js/core/audio.js`, a self-contained synthesized Web Audio module (`Dangle.Audio`), no audio files. Oscillator
+and filtered-noise one-shots with short gain envelopes: grab thump, release whoosh, a rate-limited stretch creak
+(only while a grip is held past `AUDIO_CREAK_STRETCH` = 0.88, at most every `AUDIO_CREAK_COOLDOWN` = 1.3 s per
+player), a landing thud scaled by impact, a hazard/death crunch, a soft revive chime, a trampoline bounce "boing", a
+two-note checkpoint chime, a four-note goal jingle, and three UI sounds (move/confirm/back). The AudioContext is
+created only after a real user gesture (pointerdown/keydown/touchstart, once) per browser autoplay rules, and is
+suspended/resumed with tab blur/focus (`js/game.js`) so nothing plays or queues up while the tab is hidden. Volume
+(already in Settings since Phase 5) now actually does something via `Dangle.Audio.setVolume`.
+- Wiring: `physics/grab.js` now pushes `grab`/`release` events (guarded by `W.level`, so headless tools and the
+  sandbox are unaffected) onto the same `W.level.events` queue Fx already drains; `js/game.js` calls
+  `Dangle.Audio.consume(W)` right alongside `Fx.consume(W)`, same frame, so a checkpoint's sparkle and its chime (for
+  example) are always in sync. Landing and the creak are triggered from `render/draw-player.js`, which already
+  computes the impact and stretch values for the matching visual (squash, dust). UI sounds hook two places only:
+  `ui/menus.js`'s `moveSel` (a tick only when the selection actually changes) and `Menu.update` (confirm/back/click),
+  so no screen file needed touching.
+- "Juice pass": squash-and-stretch, camera easing, respawn pop and confetti were already tuned in Phase 4 and found
+  in good shape; this phase's juice work was mostly making the new audio land on the same frame as those existing
+  visual beats, rather than retuning visuals that weren't broken.
+- Full QA (this phase's other half): `node tools/level-smoke.js --all` clean on all 150 levels (unchanged from
+  Phase 9). Physics/render cost measured live in the browser on the two heaviest levels: solo-10-10 (131R, single
+  player) steps at ~0.16-0.2 ms and renders at ~0.10 ms per frame (113 fps observed); coop-10-10 (2 players) is
+  lighter still. A 10-simulated-minute continuous session and a 60x rapid-restart loop on coop-10-10 both show flat
+  heap and stable body/constraint counts (Node, `--expose-gc`): no leak. Resize, blur/focus, and localStorage-disabled
+  all exercised live in the browser with no console errors; refreshing mid-level cleanly restarts that same level
+  (the game was never designed to resume mid-level across a refresh, only campaign progress persists).
+- **Bug found and fixed**: gamepad hot-plug testing (a synthetic `gamepadconnected`/`gamepaddisconnected` without a
+  `.gamepad` payload) crashed `core/input.js` (`Cannot read properties of undefined (reading 'index')`). Real browsers
+  always attach `.gamepad` to these events, so this was never reachable from genuine hardware, but the guard
+  (`if (e.gamepad) ...`) is one line and removes even a theoretical crash; verified fixed with a correctly-shaped
+  synthetic event afterward, and with a real hot-plug/unplug next to the user's DualSense if you get the chance.
+- Wrote a draft `README.md` (what it is, controls, campaign table, project layout, dev checks, credits). Phase 11
+  finalizes it (screenshots, license, "inspired by" note already there).
+Verification: `node tools/check-all.js` green (unchanged suite; grab.js's new event pushes didn't affect any of the
+151 authored-level bot runs or the smoke tests, which exercise grabbing constantly). Sound triggers were confirmed to
+fire without throwing during real, gesture-driven browser play (grabs, deaths, menu navigation, settings), including
+through resize/blur/focus/localStorage-disabled; the actual audio *balance* (are the levels right, is anything too
+loud or too quiet) could not be judged by ear here and needs the user's playtest — `AUDIO_MASTER_TRIM` in config.js
+and the individual sound gains in audio.js are the two places to retune.
+Known / needs your hands: exact audio levels and character (this is the first time anyone, human or otherwise, will
+actually hear it); whether the creak/grab sounds feel right during fast climbing (lots of grabs in quick succession);
+gamepad hot-plug with real hardware; the game itself, end to end, per the confirmation gate below.
+
+## Phase 10 — Audio, juice, and full QA (done, Sonnet 5)
+Built: `js/core/audio.js`, a self-contained synthesized Web Audio module (`Dangle.Audio`), no audio files. Oscillator
+and filtered-noise one-shots with short gain envelopes: grab thump, release whoosh, a rate-limited stretch creak
+(only while a grip is held past `AUDIO_CREAK_STRETCH` = 0.88, at most every `AUDIO_CREAK_COOLDOWN` = 1.3 s per
+player), a landing thud scaled by impact, a hazard/death crunch, a soft revive chime, a trampoline bounce "boing", a
+two-note checkpoint chime, a four-note goal jingle, and three UI sounds (move/confirm/back). The AudioContext is
+created only after a real user gesture (pointerdown/keydown/touchstart, once) per browser autoplay rules, and is
+suspended/resumed with tab blur/focus (`js/game.js`) so nothing plays or queues up while the tab is hidden. Volume
+(already in Settings since Phase 5) now actually does something via `Dangle.Audio.setVolume`.
+- Wiring: `physics/grab.js` now pushes `grab`/`release` events (guarded by `W.level`, so headless tools and the
+  sandbox are unaffected) onto the same `W.level.events` queue Fx already drains; `js/game.js` calls
+  `Dangle.Audio.consume(W)` right alongside `Fx.consume(W)`, same frame, so a checkpoint's sparkle and its chime (for
+  example) are always in sync. Landing and the creak are triggered from `render/draw-player.js`, which already
+  computes the impact and stretch values for the matching visual (squash, dust). UI sounds hook two places only:
+  `ui/menus.js`'s `moveSel` (a tick only when the selection actually changes) and `Menu.update` (confirm/back/click),
+  so no screen file needed touching.
+- "Juice pass": squash-and-stretch, camera easing, respawn pop and confetti were already tuned in Phase 4 and found
+  in good shape; this phase's juice work was mostly making the new audio land on the same frame as those existing
+  visual beats, rather than retuning visuals that weren't broken.
+- Full QA (this phase's other half): `node tools/level-smoke.js --all` clean on all 150 levels (unchanged from
+  Phase 9). Physics/render cost measured live in the browser on the two heaviest levels: solo-10-10 (131R, single
+  player) steps at ~0.16-0.2 ms and renders at ~0.10 ms per frame (113 fps observed); coop-10-10 (2 players) is
+  lighter still. A 10-simulated-minute continuous session and a 60x rapid-restart loop on coop-10-10 both show flat
+  heap and stable body/constraint counts (Node, `--expose-gc`): no leak. Resize, blur/focus, and localStorage-disabled
+  all exercised live in the browser with no console errors; refreshing mid-level cleanly restarts that same level
+  (the game was never designed to resume mid-level across a refresh, only campaign progress persists).
+- **Bug found and fixed**: gamepad hot-plug testing (a synthetic `gamepadconnected`/`gamepaddisconnected` without a
+  `.gamepad` payload) crashed `core/input.js` (`Cannot read properties of undefined (reading 'index')`). Real browsers
+  always attach `.gamepad` to these events, so this was never reachable from genuine hardware, but the guard
+  (`if (e.gamepad) ...`) is one line and removes even a theoretical crash; verified fixed with a correctly-shaped
+  synthetic event afterward, and with a real hot-plug/unplug next to the user's DualSense if you get the chance.
+- Wrote a draft `README.md` (what it is, controls, campaign table, project layout, dev checks, credits). Phase 11
+  finalizes it (screenshots, license, "inspired by" note already there).
+Verification: `node tools/check-all.js` green (unchanged suite; grab.js's new event pushes didn't affect any of the
+151 authored-level bot runs or the smoke tests, which exercise grabbing constantly). Sound triggers were confirmed to
+fire without throwing during real, gesture-driven browser play (grabs, deaths, menu navigation, settings), including
+through resize/blur/focus/localStorage-disabled; the actual audio *balance* (are the levels right, is anything too
+loud or too quiet) could not be judged by ear here and needs the user's playtest — `AUDIO_MASTER_TRIM` in config.js
+and the individual sound gains in audio.js are the two places to retune.
+Known / needs your hands: exact audio levels and character (this is the first time anyone, human or otherwise, will
+actually hear it); whether the creak/grab sounds feel right during fast climbing (lots of grabs in quick succession);
+gamepad hot-plug with real hardware; the game itself, end to end, per the confirmation gate below.

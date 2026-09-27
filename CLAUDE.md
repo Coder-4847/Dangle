@@ -12,7 +12,7 @@ Progress log: `PROGRESS.md`. Reference art (mood only, gitignored): `reference/`
 index.html  css/style.css
 js/lib/matter.min.js      vendored physics (offline)
 js/config.js              ALL tuning constants (Dangle.config)
-js/core/    loop input(gameplay + menu actions, device assignment) camera characters storage(saves+unlocks) (later: audio)
+js/core/    loop input(gameplay + menu actions, device assignment) camera characters storage(saves+unlocks) audio(synth SFX)
 js/physics/ world player grab surfaces hazards(rules: death/respawn, tides, goal, wind, trampolines) devices(co-op)
 js/levels/  builder segments segments-coop levels(registry+compile) themes campaigns(table + PLACEHOLDER level generator) solo-campaigns + solo-campaigns-2 coop-campaigns + coop-campaigns-2 (all 150 real, 1-10)
             loader test-levels sandbox

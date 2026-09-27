@@ -45,8 +45,9 @@ window.Dangle = window.Dangle || {};
     });
     window.addEventListener('keyup', (e) => { down.delete(e.code); });
     window.addEventListener('blur', () => { down.clear(); latched.clear(); mouse.buttons[0] = mouse.buttons[1] = false; });
-    window.addEventListener('gamepadconnected', (e) => { if (padOrder.indexOf(e.gamepad.index) < 0) padOrder.push(e.gamepad.index); });
+    window.addEventListener('gamepadconnected', (e) => { if (e.gamepad && padOrder.indexOf(e.gamepad.index) < 0) padOrder.push(e.gamepad.index); });
     window.addEventListener('gamepaddisconnected', (e) => {
+      if (!e.gamepad) return;
       const i = padOrder.indexOf(e.gamepad.index);
       if (i >= 0) padOrder.splice(i, 1);
     });

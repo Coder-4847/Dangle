@@ -105,6 +105,7 @@ window.Dangle = window.Dangle || {};
     g.target = body;
     g.lastBody = null;
     Dangle.World.addConstraint(W, g.pin);
+    if (W.level) W.level.events.push({ type: 'grab' });
   }
 
   function release(W, g) {
@@ -115,6 +116,7 @@ window.Dangle = window.Dangle || {};
     g.wantT = 0;       // a release must not instantly re-grab through the press buffer
     g.coyoteT = 0;
     g.lastBody = null;
+    if (W.level) W.level.events.push({ type: 'release' });
   }
 
   function updateHand(W, p, i, dt) {

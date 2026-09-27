@@ -91,7 +91,11 @@ Dangle.Menu = (function () {
     const moved = Dangle.Input.takeMoved();
     if (locked) return;
     if (moved && M.cur.onMove) { const p = toVirtual(Dangle.Input.pointer.x, Dangle.Input.pointer.y); M.cur.onMove(p.x, p.y); }
-    if (click && M.cur.onClick) { const p = toVirtual(click.x, click.y); M.cur.onClick(p.x, p.y); }
+    if (click && M.cur.onClick) { const p = toVirtual(click.x, click.y); M.cur.onClick(p.x, p.y); if (Dangle.Audio) Dangle.Audio.uiConfirm(); }
+    if (Dangle.Audio && actions) {
+      if (actions.indexOf('confirm') >= 0) Dangle.Audio.uiConfirm();
+      else if (actions.indexOf('back') >= 0) Dangle.Audio.uiBack();
+    }
     M.cur.update(dt, actions || []);
   }
 
@@ -127,12 +131,14 @@ Dangle.Menu = (function () {
   // Move a selection through `count` items laid out `cols` per row. Returns the new index.
   function moveSel(sel, count, cols, action) {
     const row = Math.floor(sel / cols), col = sel % cols;
-    if (action === 'left' && col > 0) return sel - 1;
-    if (action === 'right' && col < cols - 1 && sel + 1 < count) return sel + 1;
-    if (action === 'up' && row > 0) return sel - cols;
-    if (action === 'down' && sel + cols < count) return sel + cols;
-    if (action === 'down' && row < Math.floor((count - 1) / cols)) return count - 1;   // short last row
-    return sel;
+    let next = sel;
+    if (action === 'left' && col > 0) next = sel - 1;
+    else if (action === 'right' && col < cols - 1 && sel + 1 < count) next = sel + 1;
+    else if (action === 'up' && row > 0) next = sel - cols;
+    else if (action === 'down' && sel + cols < count) next = sel + cols;
+    else if (action === 'down' && row < Math.floor((count - 1) / cols)) next = count - 1;   // short last row
+    if (next !== sel && Dangle.Audio) Dangle.Audio.uiMove();
+    return next;
   }
   // Which of these rects contains the virtual point? (items have x, y, w, h)
   function hit(items, x, y) {

@@ -17,7 +17,7 @@ window.Dangle = window.Dangle || {};
   function state(p) {
     let s = fx.get(p);
     if (!s) {
-      s = { q: 0, qv: 0, prevVy: 0, lookX: 0.4, lookY: 0.3, blinkT: 1 + (p.index * 1.7) % 3, blink: 0, face: 'idle' };
+      s = { q: 0, qv: 0, prevVy: 0, lookX: 0.4, lookY: 0.3, blinkT: 1 + (p.index * 1.7) % 3, blink: 0, face: 'idle', creakT: 0 };
       fx.set(p, s);
     }
     return s;
@@ -38,6 +38,7 @@ window.Dangle = window.Dangle || {};
       if (s.prevVy > 380 && impact > 320 && Dangle.Hazards.grounded(W, p)) {
         s.qv += Math.min(4.2, impact / 240);
         if (Dangle.Fx) Dangle.Fx.land(p.head.position.x, p.head.position.y + c.HEAD_RADIUS, impact);
+        if (Dangle.Audio) Dangle.Audio.land(impact);
       }
       s.prevVy = vy;
       // Squash spring (stable in small substeps whatever the frame rate).
@@ -72,6 +73,12 @@ window.Dangle = window.Dangle || {};
       // Expression.
       const gripping = !!(p.grab[0].pin || p.grab[1].pin);
       const stretch = Math.max(p.stretch[0], p.stretch[1]);
+      // A held, stretched grip creaks once in a while (not every frame it stays stretched).
+      s.creakT -= dt;
+      if (Dangle.Audio && gripping && stretch > c.AUDIO_CREAK_STRETCH && s.creakT <= 0) {
+        Dangle.Audio.creak();
+        s.creakT = c.AUDIO_CREAK_COOLDOWN;
+      }
       if (W.level && W.level.complete) s.face = 'win';
       else if (p.popT > 0) s.face = 'pop';
       else if (!gripping && vy > 520) s.face = 'fall';

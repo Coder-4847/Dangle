@@ -230,6 +230,7 @@
   function gameInput(dt, actions) {
     const I = Dangle.Input;
     if (actions.indexOf('pause') >= 0) {
+      if (Dangle.Audio) Dangle.Audio.uiConfirm();
       if (state.howto) Session.leaveHowTo(); else Session.pause();
     }
     // Restart: hold R (dev: a tap). A pad has Restart in the pause menu.
@@ -239,7 +240,7 @@
     if (dev && I.takePressed('KeyL')) Session.playId(nextLevelId(state.levelId), state.players);
     // The little pause button top-right.
     const click = I.takeClick();
-    if (click && !state.howto && click.x > viewW - 60 && click.y < 60) Session.pause();
+    if (click && !state.howto && click.x > viewW - 60 && click.y < 60) { Session.pause(); if (Dangle.Audio) Dangle.Audio.uiConfirm(); }
     if (!wipe) I.poll(W.players);          // a live stress scenario scripts the inputs itself
   }
 
@@ -265,6 +266,7 @@
       Dangle.Debug.tick(dt, W);
       Dangle.DrawPlayer.update(W, dt);
       Dangle.Fx.consume(W);
+      if (Dangle.Audio) Dangle.Audio.consume(W);
       if (W.level) W.level.events.length = 0;
       Dangle.Fx.update(dt);
       if (!session) handleCompletion();
@@ -328,9 +330,13 @@
   // ---- boot -----------------------------------------------------------------------------------------------
   window.addEventListener('resize', resize);
   // Losing focus mid-level opens the pause menu, so coming back never drops you into a running game.
-  window.addEventListener('blur', () => { blurred = true; if (state.phase === 'play' && !state.howto && !session) Session.pause(); else if (loop) loop.setPaused(true); });
-  window.addEventListener('focus', () => { blurred = false; if (loop) loop.setPaused(state.phase !== 'play'); });
-  document.addEventListener('visibilitychange', () => { blurred = document.hidden; if (blurred && state.phase === 'play' && !state.howto && !session) Session.pause(); });
+  window.addEventListener('blur', () => { blurred = true; if (Dangle.Audio) Dangle.Audio.suspend(); if (state.phase === 'play' && !state.howto && !session) Session.pause(); else if (loop) loop.setPaused(true); });
+  window.addEventListener('focus', () => { blurred = false; if (Dangle.Audio) Dangle.Audio.resume(); if (loop) loop.setPaused(state.phase !== 'play'); });
+  document.addEventListener('visibilitychange', () => {
+    blurred = document.hidden;
+    if (Dangle.Audio) { if (blurred) Dangle.Audio.suspend(); else Dangle.Audio.resume(); }
+    if (blurred && state.phase === 'play' && !state.howto && !session) Session.pause();
+  });
 
   resize();
   Dangle.Input.init(canvas);
