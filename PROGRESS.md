@@ -410,8 +410,9 @@ gamepad hot-plug with real hardware; the game itself, end to end, per the confir
 **Docs**: README finalized (live link, bot tools, dev URL flags). CLAUDE.md folder map updated. No LICENSE, since
 none was requested.
 
-**Deploy**: pushed to https://github.com/Coder-4847/Dangle (main). GitHub Pages serves the repo root at
-https://coder-4847.github.io/Dangle/, and it was verified loading and playing in a browser.
+**Deploy**: pushed to https://github.com/Coder-4847/Dangle (main). GitHub Pages serves the `gh-pages` branch at
+https://coder-4847.github.io/Dangle/; `.github/workflows/pages-sync.yml` mirrors main onto it on every push. The live
+site was verified loading and playing in a browser.
 
 Verification: `node tools/check-all.js` prints "everything passes". This covers all 16 stress tests, lint of 155
 levels, the gap/segment bots, the level bot on all 151 authored levels, the co-op bots, the saves test, smoke on 150

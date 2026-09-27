@@ -1,0 +1,16 @@
+# GitHub Pages serves the gh-pages branch (a plain static site, no build). This keeps it an exact copy of main,
+# so every push to main redeploys the game.
+name: Sync Pages
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git push --force origin HEAD:gh-pages

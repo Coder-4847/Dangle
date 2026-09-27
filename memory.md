@@ -60,7 +60,8 @@ The master prompt is `docs/MASTER_PROMPT.md` (saved unchanged). The user re-uplo
 | 11 | Final refine, swing feel, GitHub + Pages | Opus 5.5 | done (`Phase 11: ...`), pushed |
 
 **All phases are done.** Repo: https://github.com/Coder-4847/Dangle (public, branch `main`, remote `origin`).
-Live: https://coder-4847.github.io/Dangle/ (GitHub Pages from `main` / root; every push to main redeploys).
+Live: https://coder-4847.github.io/Dangle/ (Pages serves the `gh-pages` branch; `.github/workflows/pages-sync.yml`
+mirrors main onto it on every push, so pushing main redeploys).
 Future work = bug fixes / polish on request: commit locally, run check-all, push only when the user asks.
 
 ## 4. Environment gotchas (Windows, this machine)
@@ -280,7 +281,7 @@ level's exact options', not a single continuous playthrough. Debug with `TRACE=1
   (`Audio.consume(W)` beside `Fx.consume(W)`, blur/focus suspend/resume), `render/draw-player.js` (landing, creak),
   `ui/menus.js` (`moveSel` for the move tick, `Menu.update` for confirm/back/click). `config.js` AUDIO_* constants.
   If the user wants sounds retuned: gains are named per-sound in audio.js (not spread across callers).
-- Pages is a plain static deploy of the repo root (no workflow file, no build). `reference/` stays gitignored; never
+- Pages is a plain static deploy (no build) of `gh-pages`, a mirror of main kept by the pages-sync workflow. `reference/` stays gitignored; never
   commit it. No LICENSE was added (user didn't ask).
 - Bot fallbacks added in Phase 11 (`tools/bots.js` `climbStep`): `s.jam` (heave stalled on a corner -> push straight
   up) and `s.corner`/`s.cr` (balanced on the corner -> crawl onto the top).
