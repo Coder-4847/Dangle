@@ -5,7 +5,7 @@
 // Runs on plain data only: no Matter, no DOM. Exit code 1 if any level has an error.
 const path = require('path');
 global.window = global;
-for (const f of ['config', 'levels/builder', 'levels/segments', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2']) {
+for (const f of ['config', 'levels/builder', 'levels/segments', 'levels/segments-coop', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2', 'levels/coop-campaigns']) {
   try { require(path.join('..', 'js', f + '.js')); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 }
 const D = global.Dangle;
@@ -104,7 +104,8 @@ function lint(def) {
     const where = `gap at ${fmt(g.x0)} (${g.aid}, ${fmt(g.span)})`;
     if (g.coopOnly) {
       if (!spec.coop) err(`${where} is co-op-only but the level is solo`);
-      if (g.span > LINT.GAP_COOP_MAX * R) err(`${where} exceeds the co-op limit ${LINT.GAP_COOP_MAX}R`);
+      if (g.span > LINT.GAP_COOP_MAX * R + 0.5) err(`${where} exceeds the co-op limit ${LINT.GAP_COOP_MAX}R`);
+      if (g.span < LINT.CHAIN_MIN * R - 0.5) err(`${where} is narrower than ${LINT.CHAIN_MIN}R: one player could swing across alone`);
       continue;
     }
     const limit = { none: LINT.GAP_PLAIN_MAX, rope: LINT.GAP_ROPE_MAX, ropes: Infinity, mover: LINT.GAP_MOVER_MAX, beam: LINT.GAP_BEAM_SPAN_MAX }[g.aid];
@@ -126,7 +127,7 @@ function lint(def) {
   for (const b of spec.beams) if (b.x1 - b.x0 > LINT.GAP_BEAM_MAX * R) err(`beam at ${fmt(b.x0)} is ${fmt(b.x1 - b.x0)} long (max ${LINT.GAP_BEAM_MAX}R)`);
 
   // Vertical rises.
-  const riseMax = { wall: LINT.WALL_SOLO_MAX, ledge: LINT.STEP_UP_MAX, wind: LINT.WIND_RISE_MAX, lift: LINT.LIFT_H_MAX, trampoline: LINT.TRAMP_RISE_MAX, slope: LINT.SLOPE_MAX };
+  const riseMax = { wall: LINT.WALL_SOLO_MAX, ledge: LINT.STEP_UP_MAX, wind: LINT.WIND_RISE_MAX, lift: LINT.LIFT_H_MAX, coop: 99, trampoline: LINT.TRAMP_RISE_MAX, slope: LINT.SLOPE_MAX };
   for (const r of spec.rises) {
     const max = riseMax[r.kind];
     if (max === undefined) err(`unknown rise kind ${r.kind}`);
@@ -142,6 +143,18 @@ function lint(def) {
     const cross = D.tideCross(t.len, t.climb || 0);
     if (flood < 1.2 * cross) err(`tide at ${fmt(t.x0)} floods in ${flood.toFixed(1)}s but crossing takes ~${cross.toFixed(1)}s`);
   }
+
+  // Co-op obstacles: only in co-op levels, and built so one player alone can't do them. A co-op level must need
+  // teamwork more than once (not a solo level with a second head).
+  for (const t of spec.coopTasks) {
+    const where = `${t.type} at ${fmt(t.x)}`;
+    if (!spec.coop) { if (t.type !== 'chain') err(`${where} is co-op-only but the level is solo`); continue; }
+    if (t.type === 'gate' && t.plateGap < LINT.COOP_PLATE_MIN - 1e-6) err(`${where}: plate only ${t.plateGap.toFixed(2)}R from the gate (min ${LINT.COOP_PLATE_MIN}R)`);
+    if (t.type === 'lift' && t.handleGap < LINT.COOP_PLATE_MIN - 1e-6) err(`${where}: handle only ${t.handleGap.toFixed(2)}R from the lift (min ${LINT.COOP_PLATE_MIN}R)`);
+    if ((t.type === 'lift' || t.type === 'heavy' || t.type === 'gate') && t.h < LINT.COOP_WALL_MIN - 1e-6) err(`${where}: wall/gate of ${t.h.toFixed(2)}R can be reached alone (min ${LINT.COOP_WALL_MIN}R)`);
+    if (t.type === 'heavy' && t.run < LINT.COOP_CRATE_RUN_MIN - 1e-6) err(`${where}: the crate starts only ${t.run.toFixed(2)}R from its wall (min ${LINT.COOP_CRATE_RUN_MIN}R)`);
+  }
+  if (spec.coop && spec.coopTasks.length < 2) err(`co-op level has ${spec.coopTasks.length} co-op obstacle(s): needs at least 2`);
 
   // Springboards: the drop onto the pad and the wall above it stay within what the bounce can do.
   for (const b of spec.bounces || []) {
@@ -179,7 +192,7 @@ function lint(def) {
 const BAD = [
   ['plain gap too wide', { direction: 'right', segments: [['start', {}], ['ledge', {}], ['gap', { w: 1.6 }], ['ledge', { len: 6 }], ['goal', {}]] }, 'wider than one player'],
   ['rope gap too wide', { direction: 'right', segments: [['start', {}], ['ledge', {}], ['gap', { w: 2.6, aid: 'rope' }], ['ledge', { len: 6 }], ['goal', {}]] }, 'wider than one player'],
-  ['co-op gap in a solo level', { direction: 'right', segments: [['start', {}], ['ledge', {}], ['gap', { w: 2.5, aid: 'chain' }], ['ledge', { len: 6 }], ['goal', {}]] }, 'co-op-only'],
+  ['co-op gap in a solo level', { direction: 'right', segments: [['start', {}], ['ledge', {}], ['gap', { w: 2, aid: 'chain' }], ['ledge', { len: 6 }], ['goal', {}]] }, 'co-op-only'],
   ['no goal', { direction: 'right', segments: [['start', { len: 20 }]] }, 'no goal'],
   ['too short', { direction: 'right', segments: [['start', { len: 2 }], ['goal', { len: 2 }]] }, 'length'],
   ['tide too fast', { direction: 'right', segments: [['start', {}], ['tide', { len: 6, speed: 80 }], ['goal', {}]] }, 'tide'],
@@ -189,6 +202,11 @@ const BAD = [
   ['wall too tall', { direction: 'right', segments: [['start', {}], ['wall', { h: 4.6 }], ['ledge', { len: 6 }], ['goal', {}]] }, 'exceeds'],
   ['ice slope too steep', { direction: 'right', segments: [['start', {}], ['iceSlope', { rise: 1.6 }], ['ledge', { len: 6 }], ['goal', {}]] }, 'slope rise'],
   ['bounce wall too tall', { direction: 'right', segments: [['start', {}], ['bounce', { h: 3.6 }], ['ledge', { len: 6 }], ['goal', {}]] }, 'bounce wall'],
+  ['gate in a solo level', { direction: 'right', segments: [['start', {}], ['gate', {}], ['ledge', { len: 6 }], ['goal', {}]] }, 'co-op-only'],
+  ['gate plate too close', { direction: 'right', coop: true, segments: [['start', {}], ['gate', { dist: 1.5 }], ['heavyCrate', {}], ['goal', {}]] }, 'plate only'],
+  ['co-op level with one co-op obstacle', { direction: 'right', coop: true, segments: [['start', {}], ['gate', {}], ['ledge', { len: 6 }], ['goal', {}]] }, 'at least 2'],
+  ['chain gap soloable', { direction: 'right', coop: true, segments: [['start', {}], ['gap', { w: 1.4, aid: 'chain' }], ['gate', {}], ['goal', {}]] }, 'swing across alone'],
+  ['heavy crate too close to its wall', { direction: 'right', coop: true, segments: [['start', {}], ['heavyCrate', { run: 1 }], ['gate', {}], ['goal', {}]] }, 'starts only'],
   ['ledges overlap', { direction: 'up', segments: [['startUp', {}], ['zigzag', { n: 3, ledge: 2.4 }], ['goalUp', {}]] }, 'ledge tips'],
   ['unknown segment', { direction: 'right', segments: [['start', {}], ['banana', {}]] }, 'unknown segment'],
   ['wrong direction', { direction: 'up', segments: [['start', {}]] }, 'right levels'],

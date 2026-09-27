@@ -297,6 +297,7 @@
       Dangle.Camera.apply(ctx, viewW, viewH, dpr, sh.x, sh.y);
       const hw = viewW / (2 * cam.scale), hh = viewH / (2 * cam.scale);
       Dangle.DrawLevel.back(ctx, W);
+      Dangle.DrawWorld.devices(ctx, W, alpha, layer);
       Dangle.LevelLayer.draw(ctx, layer, cam.x - hw, cam.y - hh, cam.x + hw, cam.y + hh, prewarm);
       prewarm = false;
       Dangle.DrawWorld.draw(ctx, W, alpha, layer);

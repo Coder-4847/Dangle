@@ -16,6 +16,7 @@ window.Dangle = window.Dangle || {};
       case 'ice': return { fill: t.ice[0], edge: t.ice[1], top: '#ffffff' };
       case 'noGrab': return { fill: '#4a4a58', edge: '#24242e', top: null };
       case 'helper': return { fill: '#f2c94c', edge: '#3a3a48', top: null };
+      case 'handle': return { fill: '#f2c94c', edge: '#3a3a48', top: null };
       case 'trampoline': return { fill: t.accent, edge: C().shade(t.accent, -0.4), top: C().shade(t.accent, 0.35) };
       default: return { fill: t.ground[0], edge: t.ground[1], top: t.top };
     }
@@ -115,15 +116,15 @@ window.Dangle = window.Dangle || {};
 
   // Surface band (grass, snow, shine), warning stripes, trampoline marks: clipped to the shape.
   function decorate(g, s, t) {
-    if (!s.st.top && s.kind !== 'noGrab' && s.kind !== 'helper') return;
+    if (!s.st.top && s.kind !== 'noGrab' && s.kind !== 'helper' && s.kind !== 'handle') return;
     g.save();
     g.clip(s.fillPath);
     g.translate(s.cx, s.cy);
     g.rotate(s.angle);
     const hw = s.w / 2, hh = s.h / 2;
-    if (s.kind === 'noGrab' || s.kind === 'helper') {
-      g.strokeStyle = s.kind === 'helper' ? '#3a3a48' : 'rgba(215,208,192,0.8)';
-      g.lineWidth = s.kind === 'helper' ? 8 : 6;
+    if (s.kind === 'noGrab' || s.kind === 'helper' || s.kind === 'handle') {
+      g.strokeStyle = s.kind === 'noGrab' ? 'rgba(215,208,192,0.8)' : '#3a3a48';
+      g.lineWidth = s.kind === 'noGrab' ? 6 : 8;
       g.beginPath();
       for (let x = -hw - s.h; x < hw + s.h; x += 26) { g.moveTo(x, hh + 4); g.lineTo(x + s.h + 8, -hh - 4); }
       g.stroke();
@@ -219,17 +220,27 @@ window.Dangle = window.Dangle || {};
     const w = body.dg.size.w, h = body.dg.size.h, pad = 10;
     const t = L.theme;
     const crate = body.dg.kind === 'crate';
-    const st = crate ? { fill: '#d9a15c', edge: '#8a5a2b', top: null } : styleFor(body.dg.kind, t);
+    const heavy = !!body.dg.heavy;           // two-player crate: darker wood, iron bands, two handholds
+    const st = heavy ? { fill: '#9c6a3c', edge: '#4e3420', top: null } : crate ? { fill: '#d9a15c', edge: '#8a5a2b', top: null } : styleFor(body.dg.kind, t);
     s = C().sprite(w + 2 * pad, h + 2 * pad, L.res, (g) => {
       g.translate(pad, pad);
       const path = C().toPath(C().wobble(C().rectPts(0, 0, w, h), body.id * 97 + 5, { amp: 1.4, radius: crate ? 5 : 8 }));
       g.strokeStyle = st.edge; g.lineWidth = 8; g.lineJoin = 'round'; g.stroke(path);
       g.fillStyle = st.fill; g.fill(path);
       g.save(); g.clip(path);
-      if (crate) {
+      if (heavy) {
+        g.fillStyle = '#5b5f6b';
+        for (const y of [h * 0.22, h * 0.72]) g.fillRect(-4, y, w + 8, 10);
+        g.fillStyle = '#e8e2d4';
+        for (const x of [w * 0.3, w * 0.7]) { g.beginPath(); g.arc(x, h * 0.47, 7, 0, Math.PI * 2); g.fill(); }
+      } else if (crate) {
         g.strokeStyle = st.edge; g.lineWidth = 4; g.lineCap = 'round';
         g.beginPath(); g.moveTo(8, 8); g.lineTo(w - 8, h - 8); g.moveTo(w - 8, 8); g.lineTo(8, h - 8); g.stroke();
         g.strokeRect(6, 6, w - 12, h - 12);
+      } else if (body.dg.kind === 'noGrab') {                  // gate: the same warning stripes as no-grab walls
+        g.strokeStyle = 'rgba(215,208,192,0.8)'; g.lineWidth = 6; g.beginPath();
+        for (let x = -h; x < w + h; x += 26) { g.moveTo(x, h + 4); g.lineTo(x + h + 8, -4); }
+        g.stroke();
       } else if (st.top) { g.fillStyle = st.top; g.fillRect(-4, -8, w + 8, 8 + Math.min(12, h * 0.35)); }
       g.restore();
       C().grain(g, -pad, -pad, w + 2 * pad, h + 2 * pad, 1);

@@ -74,7 +74,9 @@ Dangle.config = {
   WIND_LIFT: 1.15,          // default wind column lift, in g (net 0.15 g: a gentle float)
   KILL_DEPTH: 700,          // px below the lowest floor where falling players respawn
   CHECKPOINT_SPACING: 5,    // REACH units of safe progress between auto checkpoints
-  PARTNER_SPAWN_LEAD: 1,    // REACH units a partner must be ahead of the checkpoint to respawn beside them
+  PARTNER_SPAWN_LEAD: 1,
+  HEAVY_CRATE_SPEED: 80,    // px/s a two-player heavy crate slides while both push (co-op, physics/devices.js)
+  COOP_LIFT_SPEED: 110,     // px/s a counterweight lift rises while its handle is held    // REACH units a partner must be ahead of the checkpoint to respawn beside them
 
   // Level linter limits (tools/lint-levels.js). Distances are in REACH units. Each aid's limit is the widest span a
   // scripted player crosses (tools/gap-bots.js, tools/segment-bots.js), kept a little inside what the bots managed
@@ -85,7 +87,11 @@ Dangle.config = {
     GAP_ROPES_STEP_MAX: 1.1,    // spacing between two ropes (tools/segment-bots.js crosses 0.9-1.1R, not 1.2R)
     GAP_ROPES3_STEP_MAX: 1.0,   // spacing in a row of three or more (bots cross 0.9-1.0R, not 1.1R)
     GAP_MOVER_MAX: 8,       // moving bridge (timing, not reach, is the limit)
-    GAP_COOP_MAX: 3.4,      // chain bridge: two players end to end
+    GAP_COOP_MAX: 2.0,      // chain bridge: one hangs off the lip, the other climbs over (co-op bot crosses 2.0R)
+    CHAIN_MIN: 1.9,         // ...and no narrower: a solo lip swing crosses 1.6R often, 2.0R in 1 of 80 timings
+    COOP_PLATE_MIN: 3,      // a plate or handle is this far from what it opens: one player can't do both
+    COOP_WALL_MIN: 1.6,     // a no-grab wall that needs the partner (a lone player's hand reaches 1.18R up it)
+    COOP_CRATE_RUN_MIN: 1.8,   // a heavy crate starts this far from its wall (its top can't reach the lip)
     GAP_BEAM_MAX: 5.25,     // longest overhead beam (beamRun 4R + overhang = 5.2R crossed by the bots)
     GAP_BEAM_SPAN_MAX: 3.5, // pit crossed by hanging from a helper beam (bots cross 1.2-3.5R)
     WIND_RISE_MAX: 3.5,     // height a wind column carries you (bots climb 2.5-3.5R with it, not 4.5R)

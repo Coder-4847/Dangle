@@ -255,3 +255,43 @@ Verification: `node tools/check-all.js` green (lint 154 levels + selftest, segme
 Known / needs your hands: Rope timing again (used in every campaign), how tight the 0.9R landings and 3-rope rows feel,
 boarding moving bridges and lifts (about 1.8 s to step on), the length of the finales (72-103R), tides in 6-10 (bot
 estimates are lower bounds: a person crawls slower and thinks), lava tide visuals.
+
+## Phase 8 — Co-op mode + co-op campaigns 1-5, 25 levels (done, Opus 5.5)
+Built: `js/levels/coop-campaigns.js` registers `coop-1-1` .. `coop-5-5` (22-84 R, 3-17 obstacles; bot estimate 43-206 s).
+Every co-op level has 2+ obstacles one player can't pass alone (lint), mixed with the campaign's solo obstacles:
+1 Meadow teaches plates/gates, the heavy crate and the lift; 2 Bamboo chains of friends + ropes; 3 Caves gates and lifts
+in the dark with beams; 4 Salt heavy crates, wind, long spans; 5 Frozen lifts up icy walls. Level 5 of each is longer.
+Co-op mechanics (new `js/physics/devices.js` + `js/levels/segments-coop.js`, rule-driven on purpose: two players heaving on
+each other is chaotic, so what makes a device need a partner is a rule you can read):
+- Hold-open gate (`gate{dist,h}`): a no-grab portcullis lifts into its tower while a head is on a plate 3R+ away; a second
+  plate beyond lets the partner through. Closing never crushes: a platform never moves down/sideways into a head.
+- Counterweight lift (`leverLift{h}`): hang on a grab handle (a rope from a pulley, drawn behind) and the partner's
+  platform rises up a no-grab wall (110 px/s); a handle on top, 3R from the edge, brings the first one up. The platform
+  rests flush in a slot (a 32 px step is taller than a head can roll over).
+- Two-player heavy crate (`heavyCrate{h,run}`): slides (80 px/s) only while two different players grip it and push the
+  stick the same way, along its track to a no-grab wall (1.7-1.9R); climb it, then the wall. Distinct look (dark wood,
+  iron bands, two handholds).
+- Chain bridge (`gap aid:'chain'`, 1.9-2.0R pit): one hangs off the lip leaning out, the other grabs their head, climbs
+  over and reaches the far lip; the one left behind drops and comes back beside the partner.
+- Dropped: boost throws (a partner as a ladder got the climber's hand only to 1.46R, a lone player standing reaches 1.18R:
+  not worth a mechanic, no reliable heave) and pulley-rope counterweights (replaced by the lift above).
+Why these numbers (bots: tools/coop-bots.js, tools/coop-solo-swing.js): a lone player's hand reaches 1.18R up a no-grab
+wall (so co-op walls >= 1.6R); a lone player swinging off the lip crosses 1.6R in 11/80 release timings, 2.0R in 1/80,
+2.1R+ in 0/80 (so chain gaps are 1.9-2.0R, over spikes/lava); the two-player chain crosses 1.9-2.0R in ~13-18 s.
+Also fixed a real bug: respawning beside a partner never worked on flat ground (the free-spot probe, radius 26 at head
+height, always touched the floor): now tested 6 px higher; `level-smoke.js` checks it for every level with 2 players.
+Other: device drawing (behind the ground: `DrawWorld.devices`), plates in `draw-level.js` (light up when pressed),
+handles as striped bars, `test-coop` level (every device; `?level=test-coop&players=2`), the placeholder generator gives
+co-op slots 6-10 a gate + one more co-op obstacle, config (HEAVY_CRATE_SPEED 80, COOP_LIFT_SPEED 110; LINT GAP_COOP_MAX
+3.4 -> 2.0, CHAIN_MIN 1.9, COOP_PLATE_MIN 3, COOP_WALL_MIN 1.6, COOP_CRATE_RUN_MIN 1.8).
+Verification (all in `node tools/check-all.js`, green): lint 155 levels (+ 6 new known-bad co-op cases: gate in a solo
+level, plate too close, one co-op obstacle only, chain soloable, crate too close, co-op gap in solo), co-op bots (13
+two-player crossings + 3 one-player-can't rule checks), level bot over all 101 authored levels (co-op obstacles with two
+bots, the rest with one), smoke `--all` (devices open/close on their plates, a heavy crate won't move for one, partner
+respawn). All 25 co-op levels load in the browser with 2 players and no console errors.
+Soft-locks: gates have plates on both sides, lifts have handles at both ends, crates can't leave their track, and a player
+left behind (or who falls) comes back beside a partner who is grounded 1R+ past the checkpoint; both falling = both back
+at the checkpoint. Hold R restarts in any case.
+Known / needs your hands: the chain bridge is physics (the bots search 32 climber timings/aims, and it only became
+reliable once the anchor leans out firmly; people will find their own rhythm, but it may feel fiddly); gate/lift waits
+are ~1-2 s; gate towers are tall (the camera shows them only up close); the co-op pace on one keyboard.

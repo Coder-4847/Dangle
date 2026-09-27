@@ -99,6 +99,7 @@ window.Dangle = window.Dangle || {};
       P.preStep(W, p, c.STEP);
     }
     Dangle.Surfaces.preStep(W);
+    if (W.level && Dangle.Devices) Dangle.Devices.preStep(W);
     if (W.level) Dangle.Hazards.preStep(W, c.STEP);
     M.Engine.update(W.engine, c.STEP * 1000);
     for (const p of W.players) if (!p.dead) P.guard(W, p);

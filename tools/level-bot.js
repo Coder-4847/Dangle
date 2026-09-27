@@ -8,13 +8,15 @@
 // Why not one continuous run: chaotic parts (rope swings, tiny approach differences) make a single scripted run
 // fail for reasons that say nothing about the level; every obstacle proven from a clean start does.
 // A segment with no policy fails loudly, so a new segment can't slip into a level unverified.
-// Solo levels only (a co-op level needs two players by design).
+// Co-op levels: their co-op obstacles are crossed by two bots (tools/coop-bots.js crossTask: both players get past,
+// the second with the first one's help or the partner-respawn catch-up); every other obstacle by one bot, as in solo.
 const path = require('path');
 const B = require('./bots.js');
-for (const f of ['levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2']) {
+for (const f of ['levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2', 'levels/coop-campaigns']) {
   try { require(path.join('..', 'js', f + '.js')); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 }
 const { D, R, run, crawlTo, placeAt, dropOff, climbWall, plainGap, ropeCross, beamHang, iceUp, crateWall, settle, floatUp, crossTide, rideMover, rideLift, bounceUp } = B;
+const Coop = require('./coop-bots.js');
 const CRAWL_SPEED = 70;                                 // px/s, measured by segment-bots.js ('crawl')
 
 // One obstacle from a standing start. Returns a generator yielding to the physics loop; true when crossed.
@@ -59,7 +61,7 @@ function* obstacle(ctx, W, name, o, sg, spec, ix) {
 
 function playLevel(def) {
   const spec = D.Levels.compile(def);
-  const ix = { gap: null, gaps: 0, tide: -1, mover: -1, lift: -1, bounce: -1 };
+  const ix = { gap: null, gaps: 0, tide: -1, mover: -1, lift: -1, bounce: -1, coop: 0 };
   let obstacles = 0, obstacleTime = 0, flat = 0, failed = '';
   for (let i = 0; i < def.segments.length && !failed; i++) {
     const [name, o0] = def.segments[i];
@@ -68,6 +70,14 @@ function playLevel(def) {
     const label = `${i + 1}/${def.segments.length} ${name} ${JSON.stringify(o)} at ${(sg.p0 / R).toFixed(1)}R`;
     if (name === 'start' || name === 'ledge' || name === 'goal') { flat += sg.p1 - sg.p0; continue; }
     if (name === 'gap') { ix.gap = spec.gaps[ix.gaps++]; if (o.aid === 'mover') ix.mover++; }
+    const coop = name === 'gate' || name === 'leverLift' || name === 'heavyCrate' || (name === 'gap' && o.aid === 'chain');
+    if (coop) {
+      const r = Coop.crossTask(spec, spec.coopTasks[ix.coop++]);
+      obstacles++; obstacleTime += r.t;
+      if (!r.ok) failed = `co-op: both players did not get past ${label}`;
+      if (process.env.TRACE) console.log(`   ${r.ok ? 'ok  ' : 'FAIL'} ${label} ${r.t.toFixed(1)} s (two bots)`);
+      continue;
+    }
     if (name === 'tide') ix.tide++;
     if (name === 'lift') { ix.lift++; ix.mover++; }
     if (name === 'bounce') ix.bounce++;
@@ -89,8 +99,8 @@ function playLevel(def) {
 
 if (require.main === module) {
   const only = process.argv[2];
-  const defs = D.Levels.list().filter((d) => !d.coop && !d.stub && /^solo-/.test(d.id) && (!only || d.id === only));
-  if (!defs.length) { console.log('no authored solo levels' + (only ? ' named ' + only : '')); process.exit(1); }
+  const defs = D.Levels.list().filter((d) => !d.stub && (/^(solo|coop)-/.test(d.id) || d.id === 'test-coop') && (!only || d.id === only));
+  if (!defs.length) { console.log('no authored levels' + (only ? ' named ' + only : '')); process.exit(1); }
   let fails = 0;
   for (const def of defs) {
     let r;
@@ -98,7 +108,7 @@ if (require.main === module) {
     if (!r.ok) fails++;
     console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${def.id.padEnd(9)} ${r.ok ? `${r.len.toFixed(0)}R, ${r.obstacles} obstacles, est. ${r.t.toFixed(0)} s` : r.seg}`);
   }
-  console.log(fails ? `${fails} level(s) the bot could not finish` : `the bot crossed every obstacle of all ${defs.length} authored solo levels`);
+  console.log(fails ? `${fails} level(s) the bots could not finish` : `the bots crossed every obstacle of all ${defs.length} authored levels`);
   process.exit(fails ? 1 : 0);
 }
 module.exports = { playLevel };

@@ -103,6 +103,14 @@ window.Dangle = window.Dangle || {};
       if (height > 3.5 || (height > 1.5 && rnd() < 0.3)) { segs.push(['step', { h: -height, len: 2 }]); height = 0; }
     }
     if (height > 0.2) segs.push(['step', { h: -height, len: 2 }]);
+    // Co-op placeholders need teamwork: a hold-open gate early, and one more co-op obstacle in the middle.
+    if (def.coop) {
+      const mid = Math.max(2, Math.floor(segs.length / 2));
+      const pick = [['heavyCrate', { h: 1.8 }], ['leverLift', { h: 2.6 }], ['gap', { w: 1.9, aid: 'chain', floor: 'spikes', land: 2 }]][(p.c + p.n) % 3];
+      if (pick[0] === 'gap') segs.splice(mid, 0, pick);
+      else segs.splice(mid, 0, pick, ['step', { h: -pick[1].h, len: 2 }]);     // back down after the climb
+      segs.splice(1, 0, ['gate', {}]);
+    }
     segs.push(['goal', { len: 3 }]);
     return def;
   }

@@ -33,9 +33,26 @@ window.Dangle = window.Dangle || {};
     ctx.beginPath(); ctx.arc(r.anchor.x, r.anchor.y, 9, 0, Math.PI * 2); ctx.fill();
   }
 
+  function sprite(ctx, b, alpha, layer) {
+    const s = Dangle.LevelLayer.spriteFor(layer, b);
+    Dangle.World.pose(b, alpha, pose);
+    ctx.save();
+    ctx.translate(pose.x, pose.y);
+    if (pose.a) ctx.rotate(pose.a);
+    ctx.drawImage(s.canvas, -b.dg.size.w / 2 - s.pad, -b.dg.size.h / 2 - s.pad, s.w, s.h);
+    ctx.restore();
+  }
+
+  // Co-op gates and lifts slide into the ground: drawn BEFORE the static level layer, so the ground hides them.
+  function devices(ctx, W, alpha, layer) {
+    if (!W.level) return;
+    for (const d of W.level.devices) sprite(ctx, d.body, alpha, layer);
+  }
+
   function draw(ctx, W, alpha, layer) {
     for (const b of W.drawables) {
       if (b.dg.kind !== 'crate' && !b.dg.mover) continue;
+      if (b.dg.mover && b.dg.mover.driven && !b.dg.heavy) continue;     // devices(): behind the ground
       const s = Dangle.LevelLayer.spriteFor(layer, b);
       Dangle.World.pose(b, alpha, pose);
       ctx.save();
@@ -47,5 +64,5 @@ window.Dangle = window.Dangle || {};
     if (W.ropes) for (const r of W.ropes) drawRope(ctx, r, alpha, layer.theme);
   }
 
-  Dangle.DrawWorld = { draw };
+  Dangle.DrawWorld = { draw, devices };
 })();

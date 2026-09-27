@@ -22,7 +22,7 @@ window.Dangle = window.Dangle || {};
       restitution: 0,
     });
     if (opts.angle) M.Body.setAngle(b, opts.angle);
-    reg(W, b, kind, { grabbable: !noGrab && kind !== 'trampoline', size: { w, h } });
+    reg(W, b, kind, { grabbable: !noGrab && kind !== 'trampoline', size: { w, h } });   // 'handle' (co-op grab bar) is grabbable too
     if (kind === 'ice') b.dg.slick = true;
     return b;
   }
@@ -32,6 +32,16 @@ window.Dangle = window.Dangle || {};
     const b = M.Bodies.rectangle(x, y, size, size, { friction: Dangle.config.CRATE_FRICTION, frictionStatic: 0.2, restitution: 0, frictionAir: 0.01 });
     M.Body.setMass(b, mass);
     return reg(W, b, 'crate', { size: { w: size, h: size } });
+  }
+
+  // A static block that Dangle.Devices moves itself (gates, co-op lifts, heavy crates): drawn and interpolated like a
+  // moving platform, carries heads and hands the same way, but ignores the mover timetable below.
+  function driven(W, x, y, w, h, kind) {
+    const b = block(W, x, y, w, h, kind);
+    b.dg.mover = { vx: 0, vy: 0, driven: true };
+    b._px = b.position.x; b._py = b.position.y; b._pa = 0;
+    W.dynamic.push(b);
+    return b;
   }
 
   // Hanging rope from a fixed point. Segments are grabbable but collide with nothing,
@@ -116,5 +126,5 @@ window.Dangle = window.Dangle || {};
     }
   }
 
-  Dangle.Surfaces = { block, crate, rope, mover, preStep, postStep };
+  Dangle.Surfaces = { block, crate, rope, mover, driven, preStep, postStep };
 })();

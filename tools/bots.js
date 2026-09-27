@@ -6,8 +6,8 @@
 const path = require('path');
 global.window = global;
 global.Matter = require('../js/lib/matter.min.js');
-for (const f of ['config', 'core/characters', 'core/loop', 'physics/world', 'physics/grab', 'physics/player', 'physics/surfaces', 'physics/hazards',
-  'levels/builder', 'levels/segments', 'levels/levels', 'levels/themes', 'levels/loader']) require(path.join('..', 'js', f + '.js'));
+for (const f of ['config', 'core/characters', 'core/loop', 'physics/world', 'physics/grab', 'physics/player', 'physics/surfaces', 'physics/hazards', 'physics/devices',
+  'levels/builder', 'levels/segments', 'levels/segments-coop', 'levels/levels', 'levels/themes', 'levels/loader']) require(path.join('..', 'js', f + '.js'));
 const D = global.Dangle;
 const R = D.config.REACH;
 const vx = (b) => D.Player.velX(b);
@@ -59,7 +59,8 @@ function climbStep(p, s, wx, topY, lean, dir, pull, tune) {
     // First reach: up along the face (for a low step, to just above the lip); the grip then heaves the head over.
     const above = Math.min(p.hands[0].position.y, p.hands[1].position.y) < topY - 20;    // a hand is over the lip: reach onto the top
     const overshoot = above ? Math.max(0, topY - 12 - Math.min(p.hands[0].position.y, p.hands[1].position.y)) : 0;   // the hand hovers above the top: aim lower
-    const tx = (above ? wx + 20 * dir : wx - 8 * dir) - H.x, ty = (above ? topY - 12 + 1.5 * overshoot : Math.max(topY - 40, H.y - 110)) - H.y;
+    // T.lip: the face is no-grab, so reach straight for the top of the lip (stick length = distance).
+    const tx = (above ? wx + 20 * dir : T.lip ? wx + 10 * dir : wx - 8 * dir) - H.x, ty = (above ? topY - 12 + 1.5 * overshoot : T.lip ? topY - 20 : Math.max(topY - 40, H.y - 110)) - H.y;
     const d = Math.hypot(tx, ty) || 1, mag = D.config.AIM_DEADZONE + (1 - D.config.AIM_DEADZONE) * Math.min(1, d / R);   // stick length = reach
     set(p, tx / d * mag, ty / d * mag, up(p.hands[0]), up(p.hands[1]));
     if (g[0].pin || g[1].pin) s.holder = g[0].pin ? 0 : 1;
@@ -104,6 +105,8 @@ function* crawlTo(ctx, x, maxSec) {
   for (let i = 0; i < (maxSec || 90) * STEPS; i++) {
     if (ctx.p.head.position.x >= x) return true;
     crawlStep(ctx.p, s, 1, 0, 1, 0.1);
+    // Co-op: a crawling hand that caught the partner lets go again (walking means gripping the ground).
+    if (!ctx.allowPartner) for (let i = 0; i < 2; i++) if (ctx.p.grab[i].pin && ctx.p.grab[i].target.dg.owner) { ctx.p.input.grab[i] = false; if (s.holder === i) s.holder = undefined; }
     yield;
   }
   return false;
@@ -390,4 +393,4 @@ function* bounceUp(ctx, b, fy, ledgeEdgeX) {
   return false;
 }
 
-module.exports = { D, R, vx, vy, speed, set, setup, run, climbStep, crawlStep, crawlTo, toWall, toEdge, placeAt, settle, dropOff, climbWall, plainGap, ropeGen, ropeSearch, ropeCross, beamHang, iceUp, crateWall, floatUp, crossTide, rideMover, rideLift, bounceUp };
+module.exports = { D, R, STEPS, vx, vy, speed, set, setup, run, climbStep, crawlStep, crawlTo, toWall, toEdge, placeAt, settle, dropOff, climbWall, plainGap, ropeGen, ropeSearch, ropeCross, beamHang, iceUp, crateWall, floatUp, crossTide, rideMover, rideLift, bounceUp };

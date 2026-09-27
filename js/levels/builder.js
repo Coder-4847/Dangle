@@ -30,6 +30,7 @@ window.Dangle = window.Dangle || {};
       coop: !!def.coop, difficulty: def.difficulty || 1,
       blocks: [], movers: [], ropes: [], crates: [], hazards: [], trampolines: [], winds: [], risers: [],
       checkpoints: [], gaps: [], rises: [], tides: [], beams: [], segments: [],
+      devices: [], plates: [], handles: [], heavies: [], coopTasks: [],
       spawns: [], goal: null, bounds: null, killY: 0, length: 0,
     };
     const ext = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
@@ -71,6 +72,11 @@ window.Dangle = window.Dangle || {};
       trampoline(x, y, w, h) { spec.trampolines.push({ x, y, w, h }); b.grow(x, y); b.grow(x + w, y + h); },
       wind(x, y, w, h, ax, ay) { spec.winds.push({ x, y, w, h, ax, ay }); },
       riser(r) { spec.risers.push(r); b.grow(r.x0, r.endY); b.grow(r.x1, r.startY); },
+      // Co-op devices (physics/devices.js). plate/handle return their index for device(..., plates, handles).
+      plate(x, y, w, h) { spec.plates.push({ x, y, w, h }); return spec.plates.length - 1; },
+      handle(x, y, w, h) { spec.handles.push({ x, y, w, h }); b.grow(x, y); return spec.handles.length - 1; },
+      device(d) { spec.devices.push(d); b.grow(d.x, d.y); b.grow(d.x + d.w + d.dx, d.y + d.h + d.dy); },
+      heavy(x, y, size, x0, x1) { spec.heavies.push({ x, y, size, x0, x1 }); b.grow(x - size / 2, y - size / 2); },
 
       // Records for the linter: what the player must be able to do here.
       gap(g) { spec.gaps.push(g); },

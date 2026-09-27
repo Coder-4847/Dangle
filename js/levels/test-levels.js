@@ -59,4 +59,19 @@ window.Dangle = window.Dangle || {};
       ['goal', { len: 3 }],
     ],
   });
+
+  // Every co-op device in a row (Phase 8): open with ?level=test-coop&players=2
+  L.register({
+    id: 'test-coop', name: 'Test: Co-op devices', theme: 'meadow', direction: 'right', coop: true, difficulty: 1, seed: 4,
+    segments: [
+      ['start', { len: 3 }],
+      ['gate', {}],
+      ['leverLift', { h: 2.6 }],
+      ['step', { h: -2.6, len: 2 }],
+      ['heavyCrate', { h: 1.9 }],
+      ['step', { h: -1.9, len: 2 }],
+      ['gap', { w: 2, aid: 'chain', floor: 'spikes', land: 2 }],
+      ['goal', { len: 3 }],
+    ],
+  });
 })();

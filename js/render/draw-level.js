@@ -77,10 +77,42 @@ window.Dangle = window.Dangle || {};
     }
   }
 
+  // Co-op devices, behind everything: each grab handle hangs on a rope from a pulley; each lift runs on two rails.
+  function deviceBack(ctx, L, theme) {
+    const R = Dangle.config.REACH;
+    ctx.lineCap = 'round';
+    for (const d of L.devices) {
+      for (const h of d.handles) {
+        const x = h.position.x, y = h.position.y - 12, top = y - 1.1 * R;
+        ctx.strokeStyle = Dangle.Crayon.shade(theme.post, -0.25); ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, top); ctx.stroke();
+        ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x, top, 9, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = d.on ? theme.accent : '#c9bfae'; ctx.beginPath(); ctx.arc(x, top, 4.5, 0, Math.PI * 2); ctx.fill();
+      }
+      if (d.role === 'lift') {
+        const x0 = d.bx - d.body.dg.size.w / 2 + 10, x1 = d.bx + d.body.dg.size.w / 2 - 10;
+        const y0 = d.by + d.dy, y1 = d.by;
+        ctx.strokeStyle = 'rgba(58,58,72,0.35)'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); ctx.moveTo(x1, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      }
+    }
+  }
+
+  // Pressure plates: a low pad on the floor that sinks and lights up while someone stands on it.
+  function plates(ctx, L, theme) {
+    for (const p of L.plates) {
+      const y = p.y + p.h, down = p.on ? 4 : 0;
+      ctx.fillStyle = p.on ? theme.accent : '#d8cfbd';
+      ctx.strokeStyle = INK; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.rect(p.x + 6, y - 9 + down, p.w - 12, 9 - down); ctx.fill(); ctx.stroke();
+    }
+  }
+
   function back(ctx, W) {
     const L = W.level;
     if (!L) return;
     const theme = Dangle.Themes.get(W.themeId);
+    if (L.devices.length) deviceBack(ctx, L, theme);
     for (const z of L.winds) wind(ctx, z, L.t);
     for (const r of L.risers) {       // tides behind the ground, so they only show above it
       const top = Dangle.Hazards.tideTop(L, r);
@@ -92,6 +124,7 @@ window.Dangle = window.Dangle || {};
     const L = W.level;
     if (!L) return;
     const theme = Dangle.Themes.get(W.themeId);
+    if (L.plates.length) plates(ctx, L, theme);
     for (const h of L.hazards) {
       if (h.type === 'lava') liquid(ctx, h.x, h.x + h.w, h.y, h.y + h.h, theme.hazard, 0.95, L.t);
       else if (h.type === 'water') liquid(ctx, h.x, h.x + h.w, h.y, h.y + h.h, theme.water, 0.6, L.t);

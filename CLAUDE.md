@@ -13,20 +13,20 @@ index.html  css/style.css
 js/lib/matter.min.js      vendored physics (offline)
 js/config.js              ALL tuning constants (Dangle.config)
 js/core/    loop input(gameplay + menu actions, device assignment) camera characters storage(saves+unlocks) (later: audio)
-js/physics/ world player grab surfaces hazards(rules: death/respawn, tides, goal, wind, trampolines)
-js/levels/  builder segments levels(registry+compile) themes campaigns(table + PLACEHOLDER level generator) solo-campaigns + solo-campaigns-2 (real solo 1-10)
+js/physics/ world player grab surfaces hazards(rules: death/respawn, tides, goal, wind, trampolines) devices(co-op)
+js/levels/  builder segments segments-coop levels(registry+compile) themes campaigns(table + PLACEHOLDER level generator) solo-campaigns + solo-campaigns-2 (real solo 1-10) coop-campaigns (co-op 1-5)
             loader test-levels sandbox
 js/render/  crayon(wobble, grain, sprites) level-layer(pre-rendered static tiles, far layer) scenery characters(head/glove sprites)
             draw-world(movers, crates, ropes) draw-level(flags, liquids, darkness) draw-player particles(Fx + shake)
 js/ui/      type widgets scene menus(manager) screens screens-play(all menu screens) hud; tuning+debug (dev)
 js/dev/     stress (physics stress scenarios) stress-ui (?stress=1 table, ?stress=<name> live)
 js/game.js                entry point
-tools/sim-test.js         headless stress run: node tools/sim-test.js [scenario]  (must stay all-PASS)
-tools/energy-probe.js     which part of the step adds/removes energy in a scenario
+tools/sim-test.js         headless stress run [scenario] (must stay all-PASS); energy-probe.js: which step part adds energy
 tools/check-all.js        runs ALL checks below; must stay green (run before every commit)
 tools/lint-levels.js      level linter (--selftest guards the linter)   tools/level-smoke.js  load/finish/respawn/unload/20 restarts
 tools/bots.js             scripted one-player policies (crawl, climb, drop, ropes, beams, ice, crates); segment-bots.js (obstacles at
-                          their limits, --probe beyond) and level-bot.js (every obstacle of every authored solo level)
+                          their limits, --probe beyond), coop-bots.js (two-player policies) and level-bot.js (every
+                          obstacle of every authored level)
 tools/gap-bots.js         scripted players prove the lint gap limits    tools/camera-test.js  camera maths
 tools/progress-test.js    saves + unlock rules   tools/serve.py  no-cache dev server (preview uses it)
 ```

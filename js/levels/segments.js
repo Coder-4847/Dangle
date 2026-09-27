@@ -90,6 +90,7 @@ window.Dangle = window.Dangle || {};
     else if (o.floor) b.hazard(o.floor, x0, y + 260, w, 200);
 
     b.spec.gaps.push(g);
+    if (g.coopOnly) b.spec.coopTasks.push({ type: 'chain', x: x0, x1, y, span: w / r });
     const land = (o.land || 1.6) * r;
     b.block(x1, y, land, b.D);
     b.x = x1 + land;

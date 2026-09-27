@@ -12,8 +12,8 @@ if (!global.gc) {   // need a forced GC for the memory check: re-run ourselves w
 }
 global.window = global;
 global.Matter = require('../js/lib/matter.min.js');
-for (const f of ['config', 'core/characters', 'core/loop', 'physics/world', 'physics/grab', 'physics/player', 'physics/surfaces', 'physics/hazards',
-  'levels/builder', 'levels/segments', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2', 'levels/loader']) {
+for (const f of ['config', 'core/characters', 'core/loop', 'physics/world', 'physics/grab', 'physics/player', 'physics/surfaces', 'physics/hazards', 'physics/devices',
+  'levels/builder', 'levels/segments', 'levels/segments-coop', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2', 'levels/coop-campaigns', 'levels/loader']) {
   try { require(path.join('..', 'js', f + '.js')); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 }
 const D = global.Dangle;
@@ -76,6 +76,19 @@ function testLevel(id, count) {
     check(!p.dead && noNaN(W), 'no clean respawn after a fall');
   }
 
+  // 4b. Co-op catch-up: a player who dies comes back beside a partner standing well ahead (hazards.js respawnPoint).
+  if (count > 1) {
+    const g0 = spec.goal, [p1, p2] = W.players;
+    place(W, p2, g0.x - 0.75 * cfg.REACH, g0.y + g0.h - 30);    // just short of the goal zone, on its ledge
+    stepFor(W, 1);
+    place(W, p1, spec.spawns[0].x, spec.killY + 300);
+    stepFor(W, cfg.RESPAWN_DELAY_COOP + 0.3);
+    const d = Math.hypot(p1.head.position.x - p2.head.position.x, p1.head.position.y - p2.head.position.y);
+    check(!p1.dead && d < 2 * cfg.REACH, `co-op: a fallen player came back ${(d / cfg.REACH).toFixed(1)}R from the partner waiting by the goal (want beside them)`);
+    place(W, p1, spec.spawns[0].x, spec.spawns[0].y);
+    place(W, p2, spec.spawns[1].x, spec.spawns[1].y);
+  }
+
   // 5. Finish: everyone in the goal completes the level; one missing does not.
   const g = spec.goal;
   stepFor(W, 0.3);
@@ -133,6 +146,27 @@ function mechanics(spec, check) {
     stepFor(W, 60, (tt) => { if (p.dead && died < 0) died = tt; });
     const expect = (t0.startY - (t0.floorY - cfg.HEAD_RADIUS)) / t0.speed;
     check(died > 0 && Math.abs(died - expect) < 1.5, `tide: standing still died at ${died.toFixed(1)} s, expected ~${expect.toFixed(1)} s`);
+    D.Level.unload(W);
+  }
+
+  // Co-op devices: a head on a plate opens its gate/lift; stepping off lets it close; one grip can't move a heavy crate.
+  const dv = spec.devices.findIndex((d) => d.plates.length);
+  if (dv >= 0) {
+    const W = fresh(); const p = W.players[0]; const d = W.level.devices[dv]; const pl = spec.plates[spec.devices[dv].plates[0]];
+    place(W, p, pl.x + pl.w / 2, pl.y + pl.h - 30);
+    stepFor(W, d.time + 0.4);
+    check(d.u === 1, `device: standing on its plate did not open it (u ${d.u.toFixed(2)})`);
+    place(W, p, spec.spawns[0].x, spec.spawns[0].y);
+    stepFor(W, d.time + 0.4);
+    check(d.u === 0, `device: leaving the plate did not close it again (u ${d.u.toFixed(2)})`);
+    D.Level.unload(W);
+  }
+  if (spec.heavies.length) {
+    const W = fresh(); const h = W.level.heavies[0]; const x0 = h.body.position.x;
+    const p = W.players[0];
+    place(W, p, x0 - h.body.dg.size.w / 2 - 30, spec.heavies[0].y + spec.heavies[0].size / 2 - 30);
+    stepFor(W, 2, () => { p.input.aimX = 1; p.input.aimY = 0; p.input.grab[0] = p.input.grab[1] = true; });
+    check(Math.abs(h.body.position.x - x0) < 1, `heavy crate: one player moved it ${Math.abs(h.body.position.x - x0).toFixed(0)} px`);
     D.Level.unload(W);
   }
 

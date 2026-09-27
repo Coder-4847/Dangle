@@ -86,8 +86,10 @@ window.Dangle = window.Dangle || {};
       const h = q.head.position;
       if (progress(L, h.x, h.y) < need || !grounded(W, q)) continue;
       const off = 2 * c.HEAD_RADIUS + 12;
+      // Test (and use) a spot a little above the partner's head height: a head resting on the floor is exactly one
+      // radius above it, so a probe at the same height (radius 26 > 24) would always touch the floor.
       for (const dx of [off, -off]) {
-        if (spotFree(W, h.x + dx, h.y)) return { x: h.x + dx, y: h.y - 2, partner: true };
+        if (spotFree(W, h.x + dx, h.y - 6)) return { x: h.x + dx, y: h.y - 6, partner: true };
       }
     }
     return { x: cp.x, y: cp.y, partner: false };

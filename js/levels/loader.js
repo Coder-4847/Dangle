@@ -19,6 +19,16 @@ window.Dangle = window.Dangle || {};
     for (const r of spec.ropes) S().rope(W, r.x, r.y, r.n, r.spacing, r.mass);
     const crates = spec.crates.map((k) => S().crate(W, k.x, k.y, k.size, k.mass));
     const tramps = spec.trampolines.map((t) => S().block(W, t.x, t.y, t.w, t.h, 'trampoline'));
+    const handles = spec.handles.map((h) => S().block(W, h.x, h.y, h.w, h.h, 'handle'));
+    const devices = spec.devices.map((d) => ({
+      body: S().driven(W, d.x, d.y, d.w, d.h, d.kind), bx: d.x + d.w / 2, by: d.y + d.h / 2, dx: d.dx, dy: d.dy, time: d.time,
+      u: 0, on: false, plates: d.plates, handles: d.handles.map((i) => handles[i]), role: d.role,
+    }));
+    const heavies = spec.heavies.map((h) => {
+      const body = S().driven(W, h.x - h.size / 2, h.y - h.size / 2, h.size, h.size, 'crate');
+      body.dg.heavy = true;
+      return { body, x0: h.x0, x1: h.x1, movers: 0 };
+    });
 
     W.level = {
       spec,
@@ -35,6 +45,10 @@ window.Dangle = window.Dangle || {};
       winds: spec.winds,
       crates,
       trampolines: tramps,
+      devices,
+      plates: spec.plates.map((p) => Object.assign({ on: false }, p)),
+      handles,
+      heavies,
       events: [],           // {type: death|revive|checkpoint|complete|bounce, ...}: drained by effects/audio
     };
 

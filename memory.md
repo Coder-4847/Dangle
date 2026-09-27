@@ -2,8 +2,8 @@
 
 Read this first, then `CLAUDE.md` (rules + folder map), then `PROGRESS.md` (long log of every phase and every
 tuned number), then only the section of `docs/MASTER_PROMPT.md` for the phase you are starting.
-Written at the end of Phase 7 (updated from the Phase 5 version). Nothing has been pushed anywhere (no remote exists
-yet); `git log --oneline` shows the phase commits (Phase 7 is the newest). Working directory: `C:\Programming\Visual Studio Code\Dangle` (Windows 11).
+Written at the end of Phase 8 (updated from the Phase 5 version). Nothing has been pushed anywhere (no remote exists
+yet); `git log --oneline` shows the phase commits (Phase 8 is the newest). Working directory: `C:\Programming\Visual Studio Code\Dangle` (Windows 11).
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -53,14 +53,14 @@ The master prompt is `docs/MASTER_PROMPT.md` (saved unchanged). The user re-uplo
 | 5 | Menus, modes, saves, HUD | Sonnet 5 | done (`f9d781d`) |
 | 6 | Solo campaigns 1-5 (25 levels) | Sonnet 5 | done (`Phase 6: Solo campaigns 1-5`) |
 | 7 | Solo campaigns 6-10 (50 levels) | Sonnet 5 | done (`Phase 7: Solo campaigns 6-10`) |
-| 8 | **Co-op mode + co-op campaigns 1-5 (25)** | Opus 5.5 (override) | **NEXT** |
-| 9 | Co-op campaigns 6-10 (50) | Sonnet 5 | todo |
+| 8 | Co-op mode + co-op campaigns 1-5 (25) | Opus 5.5 (override) | done (`Phase 8: Co-op mode and campaigns 1-5`) |
+| 9 | **Co-op campaigns 6-10 (50)** | Sonnet 5 | **NEXT** |
 | 10 | Audio, juice, full QA (+ draft README) | Sonnet 5 | todo |
 | gate | user plays and confirms | n/a | todo |
 | 11 | Final refine + GitHub | Opus 5.5 | todo |
 
 To start the next chat: upload the master prompt, link the folder, and say: *"Read memory.md, CLAUDE.md and
-PROGRESS.md, then Start Phase 8."* (Phase 8 runs on Opus 5.5.) (switch to the right model first).
+PROGRESS.md, then Start Phase 9."* (Phase 9 runs on Sonnet 5.) (switch to the right model first).
 
 ## 4. Environment gotchas (Windows, this machine)
 
@@ -180,8 +180,9 @@ if a checkpoint may follow; every segment records lint metadata (`b.gap`, `b.ris
 
 **Lint limits** (`config.LINT`, REACH units, all bot-verified with a margin; see PROGRESS Phase 6): plain gap 0.9, rope
 gap 2.0 (1.7-2.0 verified), rope rows: 2 ropes 1.1R apart, 3+ ropes 1.0R apart, 0.9R to the edges, helper-beam gap
-span 3.5 (`gap aid:'beam'`), mover gap 8 (proven, Phase 7), co-op chain gap 3.4 (unverified), beam run/beam length 5.25,
-wall 3.5, ledge stack rise 1.1 with tip gap 0.2-0.6 sideways (zigzag: UNPROVEN, see below), bounce wall 3.2 with a 0.8-1.4R
+span 3.5 (`gap aid:'beam'`), mover gap 8 (proven, Phase 7), beam run/beam length 5.25,
+wall 3.5, co-op: chain gap 1.9-2.0, co-op walls >= 1.6 (heavy crate walls 1.7-1.9, proven), plates/handles >= 3R from
+what they open, heavy crate run >= 1.8, 2+ co-op obstacles per co-op level, ledge stack rise 1.1 with tip gap 0.2-0.6 sideways (zigzag: UNPROVEN, see below), bounce wall 3.2 with a 0.8-1.4R
 drop onto the pad (`trampoline` rise 3.2), lift 6, wind rise 3.5 (also with `nograb`), ice slope rise 1.0 (3R run), level
 length 12..140R, min thickness 24 px, tide flood time >= 1.2x crossing time (85 px/s crawl + 2.5 s + 2.2 s/R for a wall
 at the end: `Dangle.tideCross`), platforms accelerate <= 0.8x head grip.
@@ -193,7 +194,7 @@ crawl (~90 px/s), so keep ledges short and let steps, drops, ropes and beams car
 ice slope + shelf, wind rise (also beside a no-grab face), crate step, tides (flat, and with a wall to climb), sliding
 bridges, lifts, springboard bounce. **NOT verified** (keep out of levels or add a bot first): zigzag ledges up a shaft
 (bot ends under the overhang: no 'up' levels yet), trampolineStep (unplayable: use `bounce`), noGrabClimb, bounce with a
-no-grab wall, chain gaps and every other co-op mechanic (two players; Phase 8).
+no-grab wall. Co-op (Phase 8, tools/coop-bots.js): gate, leverLift, heavyCrate, chain gap are proven with two bots.
 Movers/lifts (`platformTiming` in segments.js): rest 1.8 s at each end, glide slowly enough to ride; a level's `period`
 is only a minimum. Keep ice shelves away from gaps and crates (slippery approach). Author files: solo-campaigns.js (1-5),
 solo-campaigns-2.js (6-10); shorthands are `Dangle.Levels.dsl`.
@@ -276,23 +277,26 @@ proven by a search over release points from a canonical stance (`placeAt` = chec
 continuous run. `level-bot.js` does the same for every obstacle, so it proves 'each obstacle is crossable with this
 level's exact options', not a single continuous playthrough. Debug with `TRACE=1 EVERY=30 node tools/level-bot.js <id>`.
 
-## 12. Guidance for Phase 8 (Co-op mode + co-op campaigns 1-5, 25 levels) and beyond
+## 12. Guidance for Phase 9 (Co-op campaigns 6-10, 50 levels) and beyond
 
-- Phase 8 runs on Opus 5.5 (user override). What exists: shared camera (fit both, zoom cap, off-screen arrows), coordinated
-  respawn (partner respawn needs a grounded partner >= 1R ahead), "both in goal" completion, per-player HUD tags, the
-  co-op menu flow and per-player device assignment. Lint rejects co-op-only gaps in solo levels and requires `coop: true`
-  for chain gaps. Level ids `coop-1-1`..`coop-5-5` are placeholders (the placeholder generator uses the solo pools).
-- Needed: the co-op-only mechanics (chain bridges `gap aid:'chain'` limit 3.4R, boost throws, hold-open plates, two-grab
-  heavy crates, counterweights), authored co-op levels (`js/levels/coop-campaigns.js`, register with `coop: true`) that
-  REQUIRE two players (not solo levels with a second head), no soft-locks (one stuck, other dies, both fall), and lint +
-  smoke with two players. Each new mechanic needs a two-player bot in `tools/bots.js` style (policies are generators over
-  one player: for two players run two generators in the same loop) and a lint rule + known-bad selftest case. Levels may
-  reuse everything proven for solo (segments + `Levels.dsl`), but the solo-only limits then apply per player.
-- Reuse the recipe: lint + a level bot for the authored co-op levels (extend level-bot.js; a co-op obstacle is proven from a
-  standing start with both players, like solo) + `level-smoke.js --all` + check-all.
-- The user has NOT yet hands-on playtested Phases 1-7: feel and level difficulty were tuned with scripted bots. Expect
-  feedback; main lever is `ARM_FORCE_CAP` (1.9) in the dev panel (`?dev=1`, backtick). Ropes are the least bot-proven part.
-- Phase 9: co-op 6-10 (50 levels): longer chains, timed handoffs, split routes that rejoin.
+- Author `coop-6-1`..`coop-10-10` in a new `js/levels/coop-campaigns-2.js` (register `coop: true`; add it to index.html
+  after coop-campaigns.js and to the file lists in tools/lint-levels.js, level-smoke.js and level-bot.js). Co-op
+  shorthands live in coop-campaigns.js (`gate/lever/heavy/chain`): export them like `Levels.dsl` or repeat them.
+- Co-op obstacles (js/levels/segments-coop.js + gap aid 'chain'): `gate{dist>=3,h}`, `leverLift{h 2.2-3.5}` (then `down`),
+  `heavyCrate{h 1.7-1.9, run>=1.8}` (then `down`), `gap{w 1.9-2.0, aid:'chain', floor, land>=2}`. Devices are rule-driven
+  (js/physics/devices.js). Lint needs 2+ co-op obstacles per co-op level. Prove every level: `node tools/level-bot.js`
+  (co-op obstacles run with two bots from tools/coop-bots.js at their exact position; the chain searches 32 timings).
+- Ideas for 6-10 (a step up, per the spec): tides + gates (hold the gate while the water rises), lifts over lava, chains
+  over lava, heavy crates in wind, several co-op obstacles back to back, a big team finale (10-10). New co-op mechanics
+  need: a rule in devices.js or a segment, a two-player policy + test in coop-bots.js, a one-player-can't check, a lint
+  rule + known-bad selftest case, smoke coverage.
+- Co-op bot lessons: the partner is an obstacle for the crawl bot (start the player who goes first ahead of the other;
+  `crawlTo` releases partner grips unless ctx.allowPartner); the chain anchor must lean out firmly (stick (-0.5, 0.5),
+  then (-0.8, 0.6) once held) or its head sinks; the climber grabs with the UPPER (left) hand, the lower one catches the
+  anchor's hand on the lip.
+- The user has NOT yet hands-on playtested Phases 1-8: feel and level difficulty were tuned with scripted bots. Expect
+  feedback; main lever is `ARM_FORCE_CAP` (1.9) in the dev panel (`?dev=1`, backtick). Ropes and the chain bridge are the
+  most physics-dependent parts.
 - Phase 10: audio is Web Audio, fully synthesized, needs a user gesture; `Dangle.Audio.setVolume` is already called
   by `applySettings` if present; level events (`death`, `revive`, `checkpoint`, `bounce`, `complete`) are drained
   every frame in `game.js` (`Fx.consume`) and are the hook for sounds. Write a draft README.md. Full QA list in the
@@ -301,12 +305,12 @@ level's exact options', not a single continuous playthrough. Debug with `TRACE=1
 - Phase 11 (Opus): visual/feel/level review, code cleanup (keep `?dev=1` tools), finalise README, ask the user for
   repo name/URL + public/private, add GitHub Pages deploy, push only then. `reference/` stays ignored.
 
-## 13. Known issues and honest caveats (as of Phase 7)
+## 13. Known issues and honest caveats (as of Phase 8)
 
 - Hands-on feel is unverified by a human. GPU frame time was never measured (hidden preview pane): the user should
   check the fps in the debug overlay (`~` key; always available) at 1P, 2P zoomed out and in Lantern Caves.
-- All 75 solo levels are authored (Phases 6-7); the 75 co-op slots are generated placeholders (untuned, flow/testing
-  only). Real levels come in Phases 8-9. Level HUD title is `Campaign Name N` (no per-level names).
+- All 75 solo levels and co-op 1-5 (25) are authored; co-op 6-10 (50) are generated placeholders (a gate + one more co-op
+  obstacle each; untuned, flow/testing only). Real levels come in Phase 9. Partner respawn was broken until Phase 8. Level HUD title is `Campaign Name N` (no per-level names).
 - Volume setting has no effect until Phase 10. HUD text is functional, not final.
 - `render` code draws per frame with ~0.4 ms CPU worst case measured; tile cache up to 72 MB.
 - Adjacent ground blocks merge visually (outline pass then fill pass); rotated ice slabs leave a small void underneath.
