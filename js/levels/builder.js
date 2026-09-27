@@ -58,8 +58,8 @@ window.Dangle = window.Dangle || {};
         for (const p of blockPoly(bl)) b.grow(p.x, p.y);
         return bl;
       },
-      mover(x, y, w, h, dx, dy, period, phase, kind) {
-        spec.movers.push({ x, y, w, h, dx, dy, period, phase: phase || 0, kind: kind || 'ground' });
+      mover(x, y, w, h, dx, dy, period, phase, kind, dwell) {
+        spec.movers.push({ x, y, w, h, dx, dy, period, phase: phase || 0, kind: kind || 'ground', dwell: dwell || 0 });
         b.grow(x, y); b.grow(x + w + dx, y + h + dy);
       },
       rope(x, y, n, spacing, mass) {

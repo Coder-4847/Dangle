@@ -176,6 +176,7 @@ function* dropOff(ctx, x0, newFloorY) {
 function* climbWall(ctx, wx, topY, dir, lean, pull, margin, tune) {
   const s = {};
   const p = ctx.p;
+  if (!(tune && tune.keepGrip)) yield* letGo(ctx, 10);    // start from a clean grip (a hand still pinned from the approach stalls the climb)
   for (let i = 0; i < 40 * STEPS; i++) {
     climbStep(p, s, wx, topY, lean === undefined ? 0.55 : lean, dir, pull, tune);
     if (s.top && (p.head.position.x - wx) * (dir || 1) > (margin === undefined ? 12 : margin) && p.head.position.y < topY - 10 && speed(p.head) < 30) return true;
@@ -320,8 +321,73 @@ function* crateWall(ctx, crate, wx, topY) {
   const p = ctx.p;
   const left = crate.position.x - 32, cTop = crate.position.y - 32;
   if (!(yield* toWall(ctx, left))) return false;
-  if (!(yield* climbWall(ctx, left, cTop, 1, 0.55, undefined, 8))) return false;
-  return yield* climbWall(ctx, wx, topY, 1, 0.55);
+  if (!(yield* climbWall(ctx, left, cTop, 1, 0.55, undefined, 8, { keepGrip: true }))) return false;
+  return yield* climbWall(ctx, wx, topY, 1, 0.55, undefined, undefined, { keepGrip: true });
 }
 
-module.exports = { D, R, vx, vy, speed, set, setup, run, climbStep, crawlStep, crawlTo, toWall, toEdge, placeAt, settle, dropOff, climbWall, plainGap, ropeGen, ropeSearch, ropeCross, beamHang, iceUp, crateWall };
+// Wind rise beside a no-grab wall: let the updraft carry you, then reach over the lip (its top stays grabbable).
+function* floatUp(ctx, wx, topY) {
+  const p = ctx.p;
+  for (let i = 0; i < 20 * STEPS && p.head.position.y > topY + 100; i++) { set(p, 0.3, -0.2, false, false); yield; }
+  return yield* climbWall(ctx, wx, topY);
+}
+
+// Rising tide: crawl the stretch, then climb the wall that ends it (if any). t = spec.tides entry; the run() driver
+// reports death (the water reached the head) as failure. Start inside the trigger range so the water starts.
+function* crossTide(ctx, t, fy) {
+  const wx = t.x0 + t.len;
+  if (t.climb > 0) return (yield* toWall(ctx, wx)) && (yield* climbWall(ctx, wx, fy - t.climb * R));
+  return yield* crawlTo(ctx, wx + 20);
+}
+
+// Sliding bridge over a pit: wait at the near edge until the platform comes back flush, crawl on, stand still while
+// it carries you, crawl off at the far side. m = spec.movers entry, g = spec.gaps entry, body = the mover's Matter body.
+function* rideMover(ctx, body, m, g, fy) {
+  const p = ctx.p;
+  const left = () => body.position.x - m.w / 2;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    for (let i = 0; i < 40 * STEPS && left() > m.x + 45; i++) { set(p, 0, 0, false, false); yield; }             // wait for it (it slows in over the last px)
+    if (left() > m.x + 45) return false;
+    const s = {};
+    let on = false;
+    for (let i = 0; i < 8 * STEPS; i++) {                                                                         // on (give up if it left without us)
+      crawlStep(p, s, 1, 0, 1, 0.1);
+      if (p.head.position.x > left() + 30 && p.head.position.x < left() + m.w - 30) { on = true; break; }
+      if (left() > m.x + 100 && p.head.position.x < m.x + 10) break;
+      yield;
+    }
+    if (!on) { for (let i = 0; i < 30; i++) { set(p, 0, 0, false, false); yield; } continue; }                 // missed: next cycle
+    set(p, 0, 0, false, false);
+    for (let i = 0; i < 40 * STEPS && body.position.x + m.w / 2 < g.x1 - 220; i++) { set(p, 0, 0, false, false); yield; }   // ride; start crawling forward on it before the end (the head slides to the rear)
+    return yield* crawlTo(ctx, g.x1 + 50);                                                                        // off
+  }
+  return false;
+}
+
+// Lift: wait until the platform is down and flush with the ledge, crawl on, ride up, crawl off onto the top.
+function* rideLift(ctx, body, l, fy) {
+  const p = ctx.p;
+  const topY = fy - l.h * R;
+  for (let i = 0; i < 40 * STEPS && body.position.y - 16 < fy - 4; i++) { set(p, 0, 0, false, false); yield; }   // wait until it is down
+  if (body.position.y - 16 < fy - 4) return false;
+  const s = {};
+  for (let i = 0; i < 6 * STEPS && p.head.position.x < l.x + 40; i++) { crawlStep(p, s, 1, 0, 1, 0.1); yield; }   // on
+  set(p, 0, 0, false, false);
+  for (let i = 0; i < 40 * STEPS && body.position.y - 16 > topY + 6; i++) { set(p, 0, 0, false, false); yield; }   // ride
+  return yield* crawlTo(ctx, l.x + l.w + 60);                                                                     // off
+}
+
+// Springboard: walk off the ledge onto the pad, get thrown up the wall face, grab the lip and heave. b = spec.bounces entry.
+function* bounceUp(ctx, b, fy, ledgeEdgeX) {
+  if (!(yield* toEdge(ctx, ledgeEdgeX, -10, true))) return false;
+  const wx = b.x + R, topY = b.y - b.h * R;
+  const s = {};
+  for (let i = 0; i < 20 * STEPS; i++) {
+    climbStep(ctx.p, s, wx, topY, 0.55, 1, undefined, undefined);
+    if (s.top && ctx.p.head.position.x - wx > 12 && ctx.p.head.position.y < topY - 10 && speed(ctx.p.head) < 30) return true;
+    yield;
+  }
+  return false;
+}
+
+module.exports = { D, R, vx, vy, speed, set, setup, run, climbStep, crawlStep, crawlTo, toWall, toEdge, placeAt, settle, dropOff, climbWall, plainGap, ropeGen, ropeSearch, ropeCross, beamHang, iceUp, crateWall, floatUp, crossTide, rideMover, rideLift, bounceUp };

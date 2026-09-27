@@ -24,8 +24,15 @@ window.Dangle = window.Dangle || {};
   const wall = (h, len) => ['wall', { h, len: len || 1.4 }];
   const beamRun = (len) => ['beamRun', { len }];
   const ice = (rise) => ['iceSlope', { len: 3, rise, shelf: 1.4 }];
-  const windRise = (h) => ['windRise', { h }];
   const crate = (h) => ['crateStep', { h }];
+  const windRise = (h, nograb) => ['windRise', { h, nograb: !!nograb }];
+  const tide = (len, h, kind) => ['tide', { len, h: h || 0, kind: kind || 'water' }];
+  const mover = (w, period, o) => ['gap', Object.assign({ w, aid: 'mover', period, land: 1.4 }, o)];
+  const lift = (h, period) => ['lift', { h, period: period || 8 }];
+  const bounce = (drop, h) => ['bounce', { drop, h }];
+
+  // The segment shorthands, shared with the other authoring files (solo-campaigns-2.js).
+  L.dsl = { start, goal, ledge, gap, rope, ropes, beamGap, up, down, wall, beamRun, ice, windRise, crate, tide, mover, lift, bounce };
 
   const defs = {
     // ---------------------------------------------------------------- 1 Sunny Meadow: grab, swing, heave; safe drops

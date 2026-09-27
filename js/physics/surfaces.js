@@ -66,7 +66,7 @@ window.Dangle = window.Dangle || {};
   // step with a matching velocity, so friction carries heads and pins carry hands.
   function mover(W, x, y, w, h, path) {
     const b = block(W, x, y, w, h, path.kind || 'ground');
-    b.dg.mover = { vx: 0, vy: 0, bx: b.position.x, by: b.position.y, dx: path.dx || 0, dy: path.dy || 0, period: path.period || 4, phase: path.phase || 0 };
+    b.dg.mover = { vx: 0, vy: 0, bx: b.position.x, by: b.position.y, dx: path.dx || 0, dy: path.dy || 0, period: path.period || 4, phase: path.phase || 0, dwell: path.dwell || 0 };
     b._px = b.position.x; b._py = b.position.y; b._pa = 0;
     W.dynamic.push(b);                // interpolated like a dynamic body
     (W.movers = W.movers || []).push(b);
@@ -79,7 +79,11 @@ window.Dangle = window.Dangle || {};
     const t = W.time + Dangle.config.STEP;
     for (const b of W.movers) {
       const m = b.dg.mover;
-      const u = (1 - Math.cos(2 * Math.PI * (t / m.period + m.phase))) / 2;
+      // Eased glide between the ends; `dwell` (0..0.4) is the share of each half cycle spent resting at an end (time to step on/off).
+      const ph = (((t / m.period + m.phase) % 1) + 1) % 1;
+      const tri = ph < 0.5 ? 2 * ph : 2 - 2 * ph;
+      const v = Math.min(1, Math.max(0, (tri - m.dwell) / (1 - 2 * m.dwell)));
+      const u = (1 - Math.cos(Math.PI * v)) / 2;
       v2.x = m.bx + m.dx * u; v2.y = m.by + m.dy * u;
       m.vx = (v2.x - b.position.x) / Dangle.config.STEP;   // px/s, for head friction
       m.vy = (v2.y - b.position.y) / Dangle.config.STEP;

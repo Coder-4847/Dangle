@@ -80,10 +80,11 @@ window.Dangle = window.Dangle || {};
       b.spec.beams.push({ x0: x0 - 0.3 * r, x1: x1 + 0.9 * r, y: y - r });
     }
     if (aid === 'mover') {
-      const platW = 1.3 * r;
-      b.mover(x0, y, platW, THIN, w - platW, 0, o.period || 7, 0);
+      const platW = 1.8 * r;
+      const { period, dwell } = platformTiming(w - platW, o.period);
+      b.mover(x0, y, platW, THIN, w - platW, 0, period, 0, 'ground', dwell);
       g.platW = platW;
-      g.period = o.period || 7;
+      g.period = period;
     }
     if (o.floor === 'spikes') b.hazard('spikes', x0, y + 260, w, 60);
     else if (o.floor) b.hazard(o.floor, x0, y + 260, w, 200);
@@ -93,7 +94,7 @@ window.Dangle = window.Dangle || {};
     b.block(x1, y, land, b.D);
     b.x = x1 + land;
     b.floor(y);
-    b.markSafe();
+    b.markSafe(b.x - Math.min(0.7, land / r - 0.4) * r);      // the flag sits on the landing even when it is short
   });
 
   // Step up (h > 0) or down (h < 0) by h REACH; a tall step is a wall to climb hand over hand.
@@ -118,7 +119,7 @@ window.Dangle = window.Dangle || {};
     const h = (o.h || 1.5) * r;
     b.block(b.x, b.y, 1.4 * r, b.D);
     b.block(b.x + 1.4 * r, b.y - h, 2 * r, b.D + h);
-    b.crate(b.x + 1.4 * r - 36, b.y - 32, 64, 7);
+    b.crate(b.x + 1.4 * r - 34, b.y - 32, 64, 14);      // heavy: a climbing hand must not drag it off the wall
     b.rise(h / r, 'wall');
     b.x += 3.4 * r; b.y -= h;
     b.floor(b.y);
@@ -203,28 +204,96 @@ window.Dangle = window.Dangle || {};
     b.block(b.x, b.y, zone, b.D);
     b.wind(b.x, b.y - h - 0.5 * r, zone, h + 0.5 * r, 0, -(o.lift || cfg().WIND_LIFT) * cfg().GRAVITY);
     b.block(b.x + zone, b.y - h, 2 * r, b.D + h);
+    if (o.nograb) b.block(b.x + zone - 24, b.y - h + 0.35 * r, 24, h - 0.35 * r, 'noGrab');   // hands slide off the face: only the wind lifts you
     b.rise(h / r, 'wind');
     b.x += zone + 2 * r; b.y -= h;
     b.floor(b.y);
     b.markSafe();
   });
 
-  // Ground stretch with a tide that starts rising when the first player enters and stops
-  // at head height; speed defaults to a planning figure (1.35x the time to cross it).
+  // Time a player needs to cross a tide stretch: crawl `len` px, then (if h > 0 REACH) climb a wall of that height.
+  // One formula for the segment (default flood speed) and the linter.
+  function tideCross(len, h) {
+    const L = cfg().LINT;
+    return len / L.TIDE_SPEED + (h > 0 ? L.TIDE_CLIMB_BASE + L.TIDE_CLIMB_PER_R * h : 0);
+  }
+  Dangle.tideCross = tideCross;
+
+  // Timing of a platform gliding `travel` px between two resting ends: it rests REST_S at each end (time to step on and
+  // off) and glides gently enough not to shake its rider off (peak acceleration <= 0.7 x what the head's floor grip
+  // holds). Returns {period, dwell}: dwell is the mover's share of the cycle spent resting at each end (surfaces.js).
+  const REST_S = 1.8;
+  function platformTiming(travel, wantPeriod) {
+    const a = 0.7 * cfg().HEAD_GRIP * cfg().GRAVITY;
+    const glide = Math.PI * Math.sqrt(travel / 2 / a);            // seconds to travel one way
+    const period = Math.max(wantPeriod || 0, Math.ceil(2 * glide + 2 * REST_S));
+    return { period, dwell: Math.min(0.4, REST_S / period) };
+  }
+
+  // Ground stretch with a tide that starts rising when the first player enters and stops at head height (or,
+  // with h > 0, a wall of h REACH ends the stretch: climb it before the water reaches you; the water stops at its
+  // top). kind: water | lava. Speed defaults to a planning figure (1.35x the time to cross it).
   Segments.add('tide', 'right', (b, o) => {
     const r = R();
     const len = (o.len || 4) * r;
+    const h = o.h || 0;
     const startY = b.y + 150;
-    const cross = len / cfg().LINT.TIDE_SPEED;
+    const cross = tideCross(len, h);
     const speed = o.speed || (startY - (b.y - HR())) / (1.35 * cross);
     const x0 = b.x;
     b.block(x0, b.y, len, b.D);
-    b.riser({ x0, x1: x0 + len, trigger0: x0, trigger1: x0 + len, type: o.kind || 'water', startY, endY: b.y - 2.4 * r, speed });
-    b.spec.tides.push({ x0, len, floorY: b.y, startY, speed });
+    b.riser({ x0, x1: x0 + len, trigger0: x0, trigger1: x0 + len, type: o.kind || 'water', startY, endY: b.y - (h > 0 ? h * r : 2.4 * r), speed });
+    b.spec.tides.push({ x0, len, floorY: b.y, startY, speed, climb: h });
     b.x += len;
+    if (h > 0) {
+      const wall = 1.6 * r;
+      b.block(b.x, b.y - h * r, wall, b.D + h * r);
+      b.rise(h, 'wall');
+      b.y -= h * r; b.x += wall;
+      b.floor(b.y);
+    }
     const land = 1.6 * r;
     b.block(b.x, b.y, land, b.D);
     b.x += land;
+    b.markSafe();
+  });
+
+  // A lift: a platform that glides up a shaft beside a wall too tall to climb. Step on when it is down, step off at the
+  // top. Falling into the shaft is the pit. period: seconds for a full down-up-down cycle.
+  Segments.add('lift', 'right', (b, o) => {
+    const r = R();
+    const h = (o.h || 4) * r;
+    const platW = 1.3 * r;
+    const { period, dwell } = platformTiming(h, o.period);
+    b.block(b.x, b.y, 0.5 * r, b.D);                        // standing room (and clearance from a beam overhanging the ledge before)
+    b.x += 0.5 * r;
+    b.mover(b.x, b.y, platW, THIN, 0, -h, period, 0, 'ground', dwell);
+    b.hazard('pit', b.x, b.y + 260, platW, 60);
+    b.spec.lifts = (b.spec.lifts || []).concat({ x: b.x, y: b.y, w: platW, h: h / r, period });
+    const wx = b.x + platW;
+    b.block(wx, b.y - h, 1.6 * r, b.D + h);
+    b.rise(h / r, 'lift');
+    b.x = wx + 1.6 * r; b.y -= h;
+    b.floor(b.y);
+    b.markSafe();
+  });
+
+  // Drop off the ledge onto a springboard at the foot of a wall: it throws you up the wall face; grab the lip.
+  // drop: how far the pad is below the ledge; h: how high the wall rises above the pad (net rise h - drop).
+  Segments.add('bounce', 'right', (b, o) => {
+    const r = R();
+    const drop = (o.drop || 1) * r;
+    const h = (o.h || 2.2) * r;
+    const padW = r;
+    const padY = b.y + drop;
+    b.trampoline(b.x, padY, padW, 40);
+    b.block(b.x, padY + 40, padW, b.D - 40 + drop);
+    const wx = b.x + padW;
+    b.block(wx, padY - h, 2 * r, b.D + h + drop);
+    b.rise(h / r, 'trampoline');
+    b.spec.bounces = (b.spec.bounces || []).concat({ x: b.x, y: padY, drop: drop / r, h: h / r });
+    b.x = wx + 2 * r; b.y = padY - h;
+    b.floor(b.y);
     b.markSafe();
   });
 

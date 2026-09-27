@@ -5,7 +5,7 @@
 // Runs on plain data only: no Matter, no DOM. Exit code 1 if any level has an error.
 const path = require('path');
 global.window = global;
-for (const f of ['config', 'levels/builder', 'levels/segments', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns']) {
+for (const f of ['config', 'levels/builder', 'levels/segments', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2']) {
   try { require(path.join('..', 'js', f + '.js')); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 }
 const D = global.Dangle;
@@ -126,7 +126,7 @@ function lint(def) {
   for (const b of spec.beams) if (b.x1 - b.x0 > LINT.GAP_BEAM_MAX * R) err(`beam at ${fmt(b.x0)} is ${fmt(b.x1 - b.x0)} long (max ${LINT.GAP_BEAM_MAX}R)`);
 
   // Vertical rises.
-  const riseMax = { wall: LINT.WALL_SOLO_MAX, ledge: LINT.STEP_UP_MAX, wind: LINT.WIND_RISE_MAX, trampoline: LINT.TRAMP_RISE_MAX, slope: LINT.SLOPE_MAX };
+  const riseMax = { wall: LINT.WALL_SOLO_MAX, ledge: LINT.STEP_UP_MAX, wind: LINT.WIND_RISE_MAX, lift: LINT.LIFT_H_MAX, trampoline: LINT.TRAMP_RISE_MAX, slope: LINT.SLOPE_MAX };
   for (const r of spec.rises) {
     const max = riseMax[r.kind];
     if (max === undefined) err(`unknown rise kind ${r.kind}`);
@@ -139,13 +139,25 @@ function lint(def) {
   // Tides must be outrunnable at planning speed.
   for (const t of spec.tides) {
     const flood = (t.startY - (t.floorY - cfg.HEAD_RADIUS)) / t.speed;
-    const cross = t.len / LINT.TIDE_SPEED;
+    const cross = D.tideCross(t.len, t.climb || 0);
     if (flood < 1.2 * cross) err(`tide at ${fmt(t.x0)} floods in ${flood.toFixed(1)}s but crossing takes ~${cross.toFixed(1)}s`);
+  }
+
+  // Springboards: the drop onto the pad and the wall above it stay within what the bounce can do.
+  for (const b of spec.bounces || []) {
+    if (b.h > LINT.BOUNCE_H_MAX + 1e-6) err(`bounce wall of ${b.h.toFixed(2)}R at ${fmt(b.x)} exceeds ${LINT.BOUNCE_H_MAX}R`);
+    if (b.drop < LINT.BOUNCE_DROP[0] - 1e-6 || b.drop > LINT.BOUNCE_DROP[1] + 1e-6) err(`bounce drop of ${b.drop.toFixed(2)}R at ${fmt(b.x)} outside ${LINT.BOUNCE_DROP.join('..')}R`);
   }
 
   // Physics safety: nothing thinner than MIN_THICK, nothing overlapping crates/hazards.
   for (const [i, b] of spec.blocks.entries()) if (Math.min(b.w, b.h) < LINT.MIN_THICK) err(`block#${i} ${b.kind} is only ${Math.min(b.w, b.h).toFixed(0)}px thick`);
   for (const [i, m] of spec.movers.entries()) if (Math.min(m.w, m.h) < LINT.MIN_THICK) err(`mover#${i} is too thin`);
+  // A rider must not be shaken off: the platform's peak acceleration stays under what the head's grip holds.
+  for (const [i, m] of spec.movers.entries()) {
+    const half = (m.period / 2) * (1 - 2 * (m.dwell || 0));
+    const accel = (Math.hypot(m.dx, m.dy) / 2) * Math.pow(Math.PI / half, 2);
+    if (accel > 0.8 * cfg.HEAD_GRIP * cfg.GRAVITY) err(`mover#${i} accelerates at ${accel.toFixed(0)} px/s^2: a rider would slide off (max ${(0.8 * cfg.HEAD_GRIP * cfg.GRAVITY).toFixed(0)})`)
+  }
   for (const [i, k] of spec.crates.entries()) {
     const cp = rectPoly(k.x - k.size / 2, k.y - k.size / 2, k.size, k.size);
     for (const s of solids) if (polysOverlap(cp, s.poly)) err(`crate#${i} overlaps ${s.what}`);
@@ -176,6 +188,7 @@ const BAD = [
   ['three ropes too far apart', { direction: 'right', segments: [['start', {}], ['gap', { aid: 'ropes', n: 3, spacing: 1.3 }], ['ledge', { len: 6 }], ['goal', {}]] }, 'rope spacing'],
   ['wall too tall', { direction: 'right', segments: [['start', {}], ['wall', { h: 4.6 }], ['ledge', { len: 6 }], ['goal', {}]] }, 'exceeds'],
   ['ice slope too steep', { direction: 'right', segments: [['start', {}], ['iceSlope', { rise: 1.6 }], ['ledge', { len: 6 }], ['goal', {}]] }, 'slope rise'],
+  ['bounce wall too tall', { direction: 'right', segments: [['start', {}], ['bounce', { h: 3.6 }], ['ledge', { len: 6 }], ['goal', {}]] }, 'bounce wall'],
   ['ledges overlap', { direction: 'up', segments: [['startUp', {}], ['zigzag', { n: 3, ledge: 2.4 }], ['goalUp', {}]] }, 'ledge tips'],
   ['unknown segment', { direction: 'right', segments: [['start', {}], ['banana', {}]] }, 'unknown segment'],
   ['wrong direction', { direction: 'up', segments: [['start', {}]] }, 'right levels'],

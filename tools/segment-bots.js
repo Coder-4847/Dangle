@@ -6,7 +6,7 @@
 // rise 4.5R, rope rows 2 x 1.2R and 3 x 1.1R (the bot crosses all of these, so the limits keep a margin), and zigzag
 // ledges up a shaft (the bot does NOT get past them: the head ends up under the overhang; not used in levels).
 const B = require('./bots.js');
-const { D, R, speed, setup, run, crawlTo, dropOff, climbWall, ropeCross, beamHang, iceUp, crateWall } = B;
+const { D, R, speed, setup, run, crawlTo, dropOff, climbWall, ropeCross, beamHang, iceUp, crateWall, floatUp, crossTide, rideMover, rideLift, bounceUp } = B;
 
 const tests = [];
 const test = (name, fn, probe) => tests.push({ name, fn, probe: !!probe });
@@ -80,6 +80,46 @@ for (const h of [1.2, 1.5, 1.9]) {
 // ---- rope rows: swing from rope to rope (release points searched, see bots.js) ------------------------------------
 for (const [n, spacing, probe] of [[2, 1.1], [3, 1.0], [2, 1.2, true], [3, 1.1, true]]) {
   test(`ropes n=${n} spacing ${spacing}R`, () => { const r = ropeCross({ aid: 'ropes', n, spacing }); return r ? r.t : -1; }, probe);
+}
+
+// ---- wind rise beside a no-grab wall face: only the updraft lifts you, then reach over the lip -----------------------
+for (const h of [1.5, 2.5, 3.5]) {
+  test(`windRise ${h}R, no-grab face`, () => {
+    const { W, p, x0 } = setup([['windRise', { h, nograb: true }]], -(1.6 * R - 60));
+    return done(W, run(W, p, floatUp({ p }, x0 + 1.6 * R, -h * R), 40));
+  });
+}
+
+// ---- rising tide: crawl the stretch (and climb the wall that ends it) before the water reaches you ------------------
+for (const [len, h] of [[4, 0], [3, 2], [5, 3], [6, 3.5]]) {
+  test(`tide ${len}R${h ? ` + wall ${h}R` : ''}`, () => {
+    const { W, p, spec } = setup([['tide', { len, h }]], 0);
+    return done(W, run(W, p, crossTide({ p }, spec.tides[0], 0), 90));
+  });
+}
+
+// ---- sliding bridge: board when it comes back flush, ride, step off ---------------------------------------------------
+for (const [w, period] of [[3, 7], [5, 8], [6, 6], [8, 9]]) {
+  test(`mover bridge ${w}R period ${period}s`, () => {
+    const { W, p, spec } = setup([['gap', { w, aid: 'mover', period, land: 2 }]], 25);
+    return done(W, run(W, p, rideMover({ p }, W.movers[0], spec.movers[0], spec.gaps[0], 0), 90));
+  });
+}
+
+// ---- lift: board when it is down, ride up, step off onto the top ------------------------------------------------------
+for (const [h, period] of [[2.5, 6], [4, 8], [6, 10]]) {
+  test(`lift ${h}R period ${period}s`, () => {
+    const { W, p, spec } = setup([['lift', { h, period }]], -(0.5 * R - 40));   // 40 px before the platform
+    return done(W, run(W, p, rideLift({ p }, W.movers[0], spec.lifts[0], 0), 90));
+  });
+}
+
+// ---- springboard: walk off the ledge onto the pad, get thrown up the wall, grab the lip ---------------------------------
+for (const [drop, h] of [[1, 1.6], [0.8, 2.6], [1.4, 3.2]]) {
+  test(`bounce drop ${drop}R wall ${h}R`, () => {
+    const { W, p, spec, x0 } = setup([['bounce', { drop, h }]], 70);
+    return done(W, run(W, p, bounceUp({ p }, spec.bounces[0], 0, x0), 40));
+  });
 }
 
 // ---- probe only: zigzag ledges up a shaft (each ledge is a lip; the bot always ends under the overhang) ----------

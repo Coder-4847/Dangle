@@ -11,21 +11,22 @@
 // Solo levels only (a co-op level needs two players by design).
 const path = require('path');
 const B = require('./bots.js');
-for (const f of ['levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns']) {
+for (const f of ['levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2']) {
   try { require(path.join('..', 'js', f + '.js')); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 }
-const { D, R, run, crawlTo, placeAt, dropOff, climbWall, plainGap, ropeCross, beamHang, iceUp, crateWall, settle } = B;
+const { D, R, run, crawlTo, placeAt, dropOff, climbWall, plainGap, ropeCross, beamHang, iceUp, crateWall, settle, floatUp, crossTide, rideMover, rideLift, bounceUp } = B;
 const CRAWL_SPEED = 70;                                 // px/s, measured by segment-bots.js ('crawl')
 
 // One obstacle from a standing start. Returns a generator yielding to the physics loop; true when crossed.
-function* obstacle(ctx, W, name, o, sg, spec, gap) {
+function* obstacle(ctx, W, name, o, sg, spec, ix) {
   const x0 = sg.p0, fy = sg.y0;
   if (name === 'step' || name === 'wall') {
     const h = name === 'wall' ? (o.h || 3) : (o.h === undefined ? 1 : o.h);
     if (h > 0) return (yield* placeAt(ctx, x0 - 60, fy)) && (yield* climbWall(ctx, x0, fy - h * R));
-    return (yield* placeAt(ctx, x0 - 130, fy)) && (yield* dropOff(ctx, x0, sg.y1));
+    return (yield* placeAt(ctx, x0 - 70, fy)) && (yield* dropOff(ctx, x0, sg.y1));
   }
   if (name === 'gap') {
+    const gap = ix.gap;
     const aid = o.aid || 'none';
     if (aid === 'none') return (yield* placeAt(ctx, gap.x0 - 14, fy)) && (yield* plainGap(ctx, gap, fy)) && (yield* settle(ctx, fy, 6));
     if (aid === 'rope' || aid === 'ropes') {
@@ -34,12 +35,19 @@ function* obstacle(ctx, W, name, o, sg, spec, gap) {
       if (!ropeCross(o)) throw new Error(`no rope crossing found for ${JSON.stringify(o)}`);
       return true;
     }
+    if (aid === 'mover') { const m = spec.movers[ix.mover]; return (yield* placeAt(ctx, gap.x0 - 25, fy)) && (yield* rideMover(ctx, W.movers[ix.mover], m, gap, fy)); }
     if (aid === 'beam') return (yield* placeAt(ctx, gap.x0 - 40, fy)) && (yield* beamHang(ctx, fy, gap.x1 + 30));
     throw new Error(`no bot policy for gap aid '${aid}'`);
   }
   if (name === 'beamRun') return (yield* placeAt(ctx, x0 - 55, fy)) && (yield* beamHang(ctx, fy, x0 + (o.len || 3) * R + 40));
   if (name === 'iceSlope') return (yield* placeAt(ctx, x0 - 40, fy)) && (yield* iceUp(ctx, x0, o.len || 3, o.rise || 0.8, sg.p1 - 90));
-  if (name === 'windRise') { const wx = x0 + 1.6 * R; return (yield* placeAt(ctx, wx - 60, fy)) && (yield* climbWall(ctx, wx, fy - (o.h || 3.5) * R)); }
+  if (name === 'windRise') {
+    const wx = x0 + 1.6 * R;
+    return (yield* placeAt(ctx, wx - 60, fy)) && (yield* (o.nograb ? floatUp : climbWall)(ctx, wx, fy - (o.h || 3.5) * R));
+  }
+  if (name === 'tide') { const t = spec.tides[ix.tide]; return (yield* placeAt(ctx, t.x0 + 30, fy)) && (yield* crossTide(ctx, t, fy)); }
+  if (name === 'lift') { const l = spec.lifts[ix.lift]; return (yield* placeAt(ctx, l.x - 40, fy)) && (yield* rideLift(ctx, W.movers[ix.mover], l, fy)); }
+  if (name === 'bounce') { const b = spec.bounces[ix.bounce]; return (yield* placeAt(ctx, x0 - 70, fy)) && (yield* bounceUp(ctx, b, fy, x0)); }
   if (name === 'crateStep') {
     const wx = x0 + 1.4 * R;
     const crate = W.level.crates.find((c) => Math.abs(c.position.x - (wx - 36)) < 200 && Math.abs(c.position.y - (fy - 32)) < 60);
@@ -51,20 +59,24 @@ function* obstacle(ctx, W, name, o, sg, spec, gap) {
 
 function playLevel(def) {
   const spec = D.Levels.compile(def);
-  let gapIndex = 0, obstacles = 0, obstacleTime = 0, flat = 0, failed = '';
+  const ix = { gap: null, gaps: 0, tide: -1, mover: -1, lift: -1, bounce: -1 };
+  let obstacles = 0, obstacleTime = 0, flat = 0, failed = '';
   for (let i = 0; i < def.segments.length && !failed; i++) {
     const [name, o0] = def.segments[i];
     const o = o0 || {};
     const sg = spec.segments[i];
     const label = `${i + 1}/${def.segments.length} ${name} ${JSON.stringify(o)} at ${(sg.p0 / R).toFixed(1)}R`;
     if (name === 'start' || name === 'ledge' || name === 'goal') { flat += sg.p1 - sg.p0; continue; }
-    const gap = name === 'gap' ? spec.gaps[gapIndex++] : null;
+    if (name === 'gap') { ix.gap = spec.gaps[ix.gaps++]; if (o.aid === 'mover') ix.mover++; }
+    if (name === 'tide') ix.tide++;
+    if (name === 'lift') { ix.lift++; ix.mover++; }
+    if (name === 'bounce') ix.bounce++;
     const W = D.Level.load(spec, 1);
     const p = W.players[0];
     const t0 = Date.now();
     let r;
     if (name === 'gap' && (o.aid === 'rope' || o.aid === 'ropes')) { r = { ok: !!ropeCross(o), t: 6 }; }
-    else r = run(W, p, obstacle({ p, W }, W, name, o, sg, spec, gap), 120);
+    else r = run(W, p, obstacle({ p, W }, W, name, o, sg, spec, ix), 120);
     D.Level.unload(W);
     obstacles++;
     obstacleTime += r.t;

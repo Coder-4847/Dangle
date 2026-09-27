@@ -15,7 +15,7 @@ window.Dangle = window.Dangle || {};
     W.themeId = spec.theme;
 
     for (const b of spec.blocks) S().block(W, b.x, b.y, b.w, b.h, b.kind, { angle: b.angle });
-    for (const m of spec.movers) S().mover(W, m.x, m.y, m.w, m.h, { dx: m.dx, dy: m.dy, period: m.period, phase: m.phase, kind: m.kind });
+    for (const m of spec.movers) S().mover(W, m.x, m.y, m.w, m.h, { dx: m.dx, dy: m.dy, period: m.period, phase: m.phase, kind: m.kind, dwell: m.dwell });
     for (const r of spec.ropes) S().rope(W, r.x, r.y, r.n, r.spacing, r.mass);
     const crates = spec.crates.map((k) => S().crate(W, k.x, k.y, k.size, k.mass));
     const tramps = spec.trampolines.map((t) => S().block(W, t.x, t.y, t.w, t.h, 'trampoline'));

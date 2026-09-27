@@ -90,13 +90,18 @@ Dangle.config = {
     GAP_BEAM_SPAN_MAX: 3.5, // pit crossed by hanging from a helper beam (bots cross 1.2-3.5R)
     WIND_RISE_MAX: 3.5,     // height a wind column carries you (bots climb 2.5-3.5R with it, not 4.5R)
     SLOPE_MAX: 1.0,         // ice slope rise over its 3R run (bots climb 0.6-1.0R)
-    TRAMP_RISE_MAX: 3,      // height a trampoline bounce clears (apex is ~3.1)
+    LIFT_H_MAX: 6,          // height a moving lift carries you (timing, not strength, is the limit)
+    TRAMP_RISE_MAX: 3.2,      // height a trampoline bounce clears (apex is ~3.1)
     WALL_SOLO_MAX: 3.5,     // hand-over-hand climbable wall height (segment bots: 3.5R yes, 4R no)
     STEP_UP_MAX: 1.1,       // vertical spacing between stacked ledges (tip to tip, diagonal reach)
     LEDGE_TIP_GAP_MAX: 0.6, // sideways distance between stacked ledge tips
     LEN_MIN: 12, LEN_MAX: 140,  // total level length
     MIN_THICK: 24,          // thinner solids can be tunnelled
-    TIDE_SPEED: 110,        // px/s a solo player covers along a tide stretch (planning figure)
+    TIDE_SPEED: 85,         // px/s a solo player covers along a tide stretch (planning figure; the bot crawls ~90)
+    TIDE_CLIMB_BASE: 2.5,   // s to climb a wall at the end of a tide stretch: this + PER_R x its height in REACH
+    TIDE_CLIMB_PER_R: 2.2,
+    BOUNCE_H_MAX: 3.2,      // wall above a springboard pad that a bounce clears (apex ~3.1R; bots manage up to 4.6R)
+    BOUNCE_DROP: [0.8, 1.4],   // how far the pad may be below the ledge you drop from
   },
 
   // --- Look ---

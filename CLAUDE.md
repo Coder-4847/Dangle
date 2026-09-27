@@ -14,7 +14,7 @@ js/lib/matter.min.js      vendored physics (offline)
 js/config.js              ALL tuning constants (Dangle.config)
 js/core/    loop input(gameplay + menu actions, device assignment) camera characters storage(saves+unlocks) (later: audio)
 js/physics/ world player grab surfaces hazards(rules: death/respawn, tides, goal, wind, trampolines)
-js/levels/  builder segments levels(registry+compile) themes campaigns(table + PLACEHOLDER level generator) solo-campaigns(real solo 1-5)
+js/levels/  builder segments levels(registry+compile) themes campaigns(table + PLACEHOLDER level generator) solo-campaigns + solo-campaigns-2 (real solo 1-10)
             loader test-levels sandbox
 js/render/  crayon(wobble, grain, sprites) level-layer(pre-rendered static tiles, far layer) scenery characters(head/glove sprites)
             draw-world(movers, crates, ropes) draw-level(flags, liquids, darkness) draw-player particles(Fx + shake)

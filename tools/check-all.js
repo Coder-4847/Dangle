@@ -9,7 +9,7 @@ const checks = [
   ['level linter', 'lint-levels.js'],
   ['gap limit bots', 'gap-bots.js'],
   ['segment bots', 'segment-bots.js'],
-  ['level bot (solo 1-5)', 'level-bot.js'],
+  ['level bot (authored solo)', 'level-bot.js'],
   ['saves and unlock rules', 'progress-test.js'],
   ['level smoke test', 'level-smoke.js'],
   ['camera', 'camera-test.js'],

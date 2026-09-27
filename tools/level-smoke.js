@@ -13,7 +13,7 @@ if (!global.gc) {   // need a forced GC for the memory check: re-run ourselves w
 global.window = global;
 global.Matter = require('../js/lib/matter.min.js');
 for (const f of ['config', 'core/characters', 'core/loop', 'physics/world', 'physics/grab', 'physics/player', 'physics/surfaces', 'physics/hazards',
-  'levels/builder', 'levels/segments', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/loader']) {
+  'levels/builder', 'levels/segments', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2', 'levels/loader']) {
   try { require(path.join('..', 'js', f + '.js')); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 }
 const D = global.Dangle;
@@ -140,9 +140,10 @@ function mechanics(spec, check) {
   if (m) {
     const W = fresh(); const p = W.players[0];
     place(W, p, m.x + m.w / 2, m.y - cfg.HEAD_RADIUS - 3);
-    let x0 = null, maxDx = 0;
-    stepFor(W, m.period, () => { if (x0 === null) x0 = p.head.position.x; maxDx = Math.max(maxDx, Math.abs(p.head.position.x - x0)); });
-    check(!p.dead && maxDx > 0.5 * Math.abs(m.dx), `mover: rider moved only ${maxDx.toFixed(0)} of ${Math.abs(m.dx).toFixed(0)} px`);
+    let x0 = null, y0 = null, maxD = 0;
+    stepFor(W, m.period, () => { if (x0 === null) { x0 = p.head.position.x; y0 = p.head.position.y; } maxD = Math.max(maxD, Math.hypot(p.head.position.x - x0, p.head.position.y - y0)); });
+    const travel = Math.hypot(m.dx, m.dy);
+    check(!p.dead && maxD > 0.5 * travel, `mover: rider moved only ${maxD.toFixed(0)} of ${travel.toFixed(0)} px`);
     D.Level.unload(W);
   }
 }

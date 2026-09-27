@@ -219,3 +219,39 @@ the face to just above the lip, then over onto the top, then heave (mantle when 
 Known / needs your hands: rope timing and how hard ropes are for a human (the levels lean on them in campaign 2 and as
 gaps everywhere), beam hanging over spikes (clearance ~20 px under the beam), ice slope feel, crate steps (about 5 s),
 overall length of the signature levels (56-60 R). Zigzag/up levels are still unproven for Phase 7 or later.
+
+## Phase 7 — Solo campaigns 6-10, 50 levels (done, Sonnet 5)
+Built: `js/levels/solo-campaigns-2.js` registers `solo-6-1` .. `solo-10-10` (10 levels each). All 75 authored solo levels
+now exist; only the 75 co-op slots are still placeholders. Levels are 17-103 R long with 4-22 obstacles (bot estimate
+21-190 s), chained with little ground between (short landings, tight routes); levels 5 and 10 of each campaign are the
+mid-boss and the finale. `solo-campaigns.js` now exports its shorthands as `Levels.dsl` for the second file.
+- 6 Tidal Ruins: tides you outrun on flat ground, then tides you climb out of (tide + wall), between ropes, beam gaps,
+  crates. 7 Clockwork Works: sliding bridges (3-8R), lifts (2.5-6R), with ropes, beams, crates. 8 Sky Islands:
+  springboards (drop onto a pad, get thrown up a wall of 1.6-3.2R), wind rises, ropes with short landings, big drops.
+  9 Ember Depths: lava-floored pits, lava tides, wind rises beside NO-GRAB wall faces, ice slopes, 0.9R landings.
+  10 The Big Dangle: all of it (the finale is 103R, 22 obstacles).
+- New segments/options (all bot-proven, lint rules added): `tide{len,h,kind}` (h > 0 ends the stretch with a wall to climb
+  before the water reaches you; water speed planned at 1.35x the crossing time from `Dangle.tideCross`), `lift{h,period}`
+  (a platform up a shaft beside a wall, up to 6R, with 0.5R standing room before it), `bounce{drop,h}` (walk off the
+  ledge onto a springboard at the foot of a wall; replaces the unplayable `trampolineStep`), `windRise{nograb:true}`
+  (no-grab face panel: only the wind lifts you, the lip stays grabbable), `gap aid:'mover'` widened to 1.8R platform.
+  Movers/lifts rest at each end (`dwell`, share of the cycle; `REST_S` = 1.8 s to step on and off) and glide slowly enough
+  for the rider (`platformTiming`: peak acceleration <= 0.7 x head grip; the level's period is only a minimum, so
+  a lift of 4R has a period of 8 s, 6R 10 s+). Lint rejects a platform accelerating > 0.8 x head grip.
+  `crateStep` crate is now mass 14 (a climbing hand dragged the light one off the wall). Checkpoint flags sit on short
+  landings (`gap` markSafe adjusts for land < 1.2R).
+- Limits (config.LINT): TIDE_SPEED 85 (was 110; bot crawls ~90), TIDE_CLIMB_BASE/PER_R 2.5/2.2 s (wall at the end of a
+  tide), BOUNCE_H_MAX 3.2 (bot manages 4.6), BOUNCE_DROP 0.8..1.4, LIFT_H_MAX 6, TRAMP_RISE_MAX 3.2.
+- Tools: `bots.js` got tide, mover, lift, bounce and float (wind + no-grab) policies; `segment-bots.js` is 45 cases
+  (was 28); `level-bot.js` covers all 75 authored solo levels; `check-all.js` label is 'level bot (authored solo)'.
+  Bot fixes worth knowing: start a climb from a clean grip (`letGo`), mantle when a grip is within 22 px of the lip,
+  keep grips for crate climbs (`keepGrip`), board a moving bridge from 25 px away and start crawling forward on it
+  early (the head slides to the rear), stance for drops/bounces 70 px before the edge (a short landing is 0.9R).
+- Not used (bot could not do them): zigzag 'up' levels, `noGrabClimb`/stair stubs (heads get trapped under stubs),
+  bounce with a no-grab wall (the head falls back onto the ledge), a plain gap or crates directly after an ice shelf
+  (slippery approach: levels put a ledge between).
+Verification: `node tools/check-all.js` green (lint 154 levels + selftest, segment bots 45, level bot 75 levels, smoke incl.
+`--all` 153 levels, gap bots, stress, camera, saves); all 50 new levels load in the browser with no console errors.
+Known / needs your hands: Rope timing again (used in every campaign), how tight the 0.9R landings and 3-rope rows feel,
+boarding moving bridges and lifts (about 1.8 s to step on), the length of the finales (72-103R), tides in 6-10 (bot
+estimates are lower bounds: a person crawls slower and thinks), lava tide visuals.
