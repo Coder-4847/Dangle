@@ -139,8 +139,24 @@ window.Dangle = window.Dangle || {};
       const ty = ry + (Math.sin(ang) * len - ry) * blend;
       const ex = H.position.x + tx - hand.position.x;
       const ey = H.position.y + ty - hand.position.y;
-      let fx = k * ex - d * (velX(hand) - hvx);
-      let fy = k * ey - d * (velY(hand) - hvy);
+      const rvx = velX(hand) - hvx, rvy = velY(hand) - hvy;
+      let fx = k * ex, fy = k * ey;
+      if (gripping) {
+        // Damp only ALONG the arm (so the muscle doesn't bounce), and barely across it: a swing keeps its
+        // momentum while you steer or pump it. The small, capped cross damping only settles a wobble at rest.
+        const ax = hand.position.x - H.position.x, ay = hand.position.y - H.position.y;
+        const al = Math.hypot(ax, ay) || 1;
+        const ux = ax / al, uy = ay / al;
+        const rr = rvx * ux + rvy * uy;
+        fx -= d * rr * ux; fy -= d * rr * uy;
+        const tx2 = rvx - rr * ux, ty2 = rvy - rr * uy, tm = Math.hypot(tx2, ty2);
+        if (tm > 1e-6) {
+          const td = Math.min(d * c.PINNED_CROSS_DAMP * tm, c.PINNED_CROSS_DAMP_CAP * c.GRAVITY);
+          fx -= td * tx2 / tm; fy -= td * ty2 / tm;
+        }
+      } else {
+        fx -= d * rvx; fy -= d * rvy;
+      }
       const mag = Math.hypot(fx, fy);
       if (mag > cap) { fx *= cap / mag; fy *= cap / mag; }
       // An aimed free arm also carries its hand's weight (the head takes the load), so the spring

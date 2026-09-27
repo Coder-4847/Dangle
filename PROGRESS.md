@@ -369,45 +369,54 @@ Known / needs your hands: exact audio levels and character (this is the first ti
 actually hear it); whether the creak/grab sounds feel right during fast climbing (lots of grabs in quick succession);
 gamepad hot-plug with real hardware; the game itself, end to end, per the confirmation gate below.
 
-## Phase 10 — Audio, juice, and full QA (done, Sonnet 5)
-Built: `js/core/audio.js`, a self-contained synthesized Web Audio module (`Dangle.Audio`), no audio files. Oscillator
-and filtered-noise one-shots with short gain envelopes: grab thump, release whoosh, a rate-limited stretch creak
-(only while a grip is held past `AUDIO_CREAK_STRETCH` = 0.88, at most every `AUDIO_CREAK_COOLDOWN` = 1.3 s per
-player), a landing thud scaled by impact, a hazard/death crunch, a soft revive chime, a trampoline bounce "boing", a
-two-note checkpoint chime, a four-note goal jingle, and three UI sounds (move/confirm/back). The AudioContext is
-created only after a real user gesture (pointerdown/keydown/touchstart, once) per browser autoplay rules, and is
-suspended/resumed with tab blur/focus (`js/game.js`) so nothing plays or queues up while the tab is hidden. Volume
-(already in Settings since Phase 5) now actually does something via `Dangle.Audio.setVolume`.
-- Wiring: `physics/grab.js` now pushes `grab`/`release` events (guarded by `W.level`, so headless tools and the
-  sandbox are unaffected) onto the same `W.level.events` queue Fx already drains; `js/game.js` calls
-  `Dangle.Audio.consume(W)` right alongside `Fx.consume(W)`, same frame, so a checkpoint's sparkle and its chime (for
-  example) are always in sync. Landing and the creak are triggered from `render/draw-player.js`, which already
-  computes the impact and stretch values for the matching visual (squash, dust). UI sounds hook two places only:
-  `ui/menus.js`'s `moveSel` (a tick only when the selection actually changes) and `Menu.update` (confirm/back/click),
-  so no screen file needed touching.
-- "Juice pass": squash-and-stretch, camera easing, respawn pop and confetti were already tuned in Phase 4 and found
-  in good shape; this phase's juice work was mostly making the new audio land on the same frame as those existing
-  visual beats, rather than retuning visuals that weren't broken.
-- Full QA (this phase's other half): `node tools/level-smoke.js --all` clean on all 150 levels (unchanged from
-  Phase 9). Physics/render cost measured live in the browser on the two heaviest levels: solo-10-10 (131R, single
-  player) steps at ~0.16-0.2 ms and renders at ~0.10 ms per frame (113 fps observed); coop-10-10 (2 players) is
-  lighter still. A 10-simulated-minute continuous session and a 60x rapid-restart loop on coop-10-10 both show flat
-  heap and stable body/constraint counts (Node, `--expose-gc`): no leak. Resize, blur/focus, and localStorage-disabled
-  all exercised live in the browser with no console errors; refreshing mid-level cleanly restarts that same level
-  (the game was never designed to resume mid-level across a refresh, only campaign progress persists).
-- **Bug found and fixed**: gamepad hot-plug testing (a synthetic `gamepadconnected`/`gamepaddisconnected` without a
-  `.gamepad` payload) crashed `core/input.js` (`Cannot read properties of undefined (reading 'index')`). Real browsers
-  always attach `.gamepad` to these events, so this was never reachable from genuine hardware, but the guard
-  (`if (e.gamepad) ...`) is one line and removes even a theoretical crash; verified fixed with a correctly-shaped
-  synthetic event afterward, and with a real hot-plug/unplug next to the user's DualSense if you get the chance.
-- Wrote a draft `README.md` (what it is, controls, campaign table, project layout, dev checks, credits). Phase 11
-  finalizes it (screenshots, license, "inspired by" note already there).
-Verification: `node tools/check-all.js` green (unchanged suite; grab.js's new event pushes didn't affect any of the
-151 authored-level bot runs or the smoke tests, which exercise grabbing constantly). Sound triggers were confirmed to
-fire without throwing during real, gesture-driven browser play (grabs, deaths, menu navigation, settings), including
-through resize/blur/focus/localStorage-disabled; the actual audio *balance* (are the levels right, is anything too
-loud or too quiet) could not be judged by ear here and needs the user's playtest — `AUDIO_MASTER_TRIM` in config.js
-and the individual sound gains in audio.js are the two places to retune.
-Known / needs your hands: exact audio levels and character (this is the first time anyone, human or otherwise, will
-actually hear it); whether the creak/grab sounds feel right during fast climbing (lots of grabs in quick succession);
-gamepad hot-plug with real hardware; the game itself, end to end, per the confirmation gate below.
+## Phase 11 — Final refine, swing feel, GitHub + Pages (done, Opus 5.5)
+**Swing feel** (the user asked for more fluid swinging):
+- A gripping arm's damping is now split (`physics/player.js` `armForces`). **Along** the arm it is unchanged, so grips
+  stay firm and pull-ups/stretch don't wobble. **Across** the arm (along the swing) it is capped at
+  `PINNED_CROSS_DAMP_CAP` = 2.4 g, so a fast swing is no longer braked hard while you steer or pump it. Slow wobbles
+  (below the cap) still settle as before.
+- `HEAD_AIR_DRAG` halved (0.003 -> 0.0015).
+- Measured (scratch probe; the stress fling scenario): release speed 602 -> 708 px/s (+18%); same-level fling distance
+  132 -> 175 px; a free (neutral-stick) swing keeps 17% of its energy after 4 s (was 13%); settle times unchanged; all
+  16 stress tests pass.
+- **What limited it: the co-op chain gap.**
+  - More fluid tunings were tried: cap 0.8 g and halving the hand drag too gave a 838 px/s fling and 27% retention.
+  - But then a lone player's lip swing crossed a 1.9-2.0R chain gap in 15-17 of 80 release timings
+    (`tools/coop-solo-swing.js`), which breaks "co-op needs both players".
+  - Findings from the measurements:
+    - `HAND_AIR_DRAG` is most of a swing's damping; it stays 0.03.
+    - Pit depth can't separate solo from co-op: the partner climbing over dips as deep as a solo pendulum.
+    - The old physics already let a solo swing across 1.9R in 9/80 timings.
+  - So the chain limits moved up 0.1R:
+    - `CHAIN_MIN` 1.9 -> 2.0.
+    - `GAP_COOP_MAX` 2.0 -> 2.1: the co-op bot crosses 2.1R, not 2.2R.
+    - Every co-op chain gap is 0.1R wider (1.9 -> 2.0, 2.0 -> 2.1).
+    - A lone swing now crosses 2.0-2.1R in 1 of 80 timings, the same bar as Phase 8.
+- `WIND_DRAG` = 1.5 /s, turbulence inside wind columns (`physics/hazards.js`). Floats settle at the column top
+  instead of bobbing, which lighter air drag made worse. Player bodies only; crates are unchanged.
+- Bot policies updated for the new feel (`tools/bots.js`), all as bot technique, no level changes:
+  - `floatUp` rides the column past the lip before reaching.
+  - `bounceUp` keeps its hands up while dropping to the pad and off until the throw slows.
+  - `climbStep` pushes straight up when a heave jams the head on a corner, and crawls off when balanced on it.
+
+**Cleanup**:
+- Removed the Phase 3 placeholder level generator (`Campaigns.stub`, `OB`, `POOLS`). All 150 campaign slots are
+  authored, and `Levels.all()` now throws if one ever isn't.
+- Fixed a garbled config comment (`PARTNER_SPAWN_LEAD`).
+- Removed a duplicated Phase 10 section here.
+- The `?dev=1` tuning panel gained the swing brake cap.
+- No stray `console.log`/`debugger`/TODOs in `js/`.
+
+**Docs**: README finalized (live link, bot tools, dev URL flags). CLAUDE.md folder map updated. No LICENSE, since
+none was requested.
+
+**Deploy**: pushed to https://github.com/Coder-4847/Dangle (main). GitHub Pages serves the repo root at
+https://coder-4847.github.io/Dangle/, and it was verified loading and playing in a browser.
+
+Verification: `node tools/check-all.js` prints "everything passes". This covers all 16 stress tests, lint of 155
+levels, the gap/segment bots, the level bot on all 151 authored levels, the co-op bots, the saves test, smoke on 150
+levels, and the camera test.
+
+Known / needs your hands: the swing feel is the main thing to judge by hand. If it should be looser still,
+`PINNED_CROSS_DAMP_CAP` (lower = freer) is the dial, but below ~2 g the chain gaps need re-proving
+(`node tools/coop-solo-swing.js 2.0`).

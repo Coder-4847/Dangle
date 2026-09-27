@@ -99,7 +99,7 @@ function playLevel(def) {
 
 if (require.main === module) {
   const only = process.argv[2];
-  const defs = D.Levels.list().filter((d) => !d.stub && (/^(solo|coop)-/.test(d.id) || d.id === 'test-coop') && (!only || d.id === only));
+  const defs = D.Levels.list().filter((d) => (/^(solo|coop)-/.test(d.id) || d.id === 'test-coop') && (!only || d.id === only));
   if (!defs.length) { console.log('no authored levels' + (only ? ' named ' + only : '')); process.exit(1); }
   let fails = 0;
   for (const def of defs) {

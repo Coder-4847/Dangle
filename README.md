@@ -9,6 +9,8 @@ Solo mode (one player) and local co-op (two players, one screen), 10 campaigns p
 
 ## Playing it
 
+**Play in your browser:** https://coder-4847.github.io/Dangle/
+
 Dangle is a fully static site: plain HTML, CSS and JavaScript, no build step, no server required, and no
 internet connection needed once you have the files. There are two ways to run it:
 
@@ -85,7 +87,13 @@ node tools/check-all.js          # runs everything below; must print "everything
 node tools/sim-test.js           # physics stress tests (grabbing, swinging, chains, tunneling, low frame rate...)
 node tools/lint-levels.js        # every level has a spawn, a goal, fair gap sizes, etc.
 node tools/level-smoke.js --all  # every level loads, can be finished, respawns correctly, and unloads cleanly
+node tools/level-bot.js          # scripted players cross every obstacle of all 150 levels
+node tools/coop-bots.js          # two scripted players cross each co-op obstacle; one alone can't
 ```
+
+In the browser, `?dev=1` unlocks everything and adds a debug overlay (backtick toggles it), a live tuning panel,
+`L` to skip to the next level and `R` to restart. `?level=solo-3-2` jumps straight into a level, and
+`?stress=1` opens the physics stress-test table.
 
 `docs/MASTER_PROMPT.md` is the full design specification, and `PROGRESS.md` is a running log of what was
 built in each development phase and why particular numbers were chosen.

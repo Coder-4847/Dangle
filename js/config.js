@@ -29,8 +29,8 @@ Dangle.config = {
   HEAD_GRIP: 0.9,           // head friction on floors, in g (walls are frictionless for players)
   HAND_GRIP: 2.5,           // hand friction on floors, in g: pushing on the floor doesn't skate
   SLICK_GRIP_SCALE: 0.08,   // ice / slick surfaces keep this fraction of the grip
-  HEAD_AIR_DRAG: 0.003,
-  HAND_AIR_DRAG: 0.03,
+  HEAD_AIR_DRAG: 0.0015,    // halved in Phase 11 so swings carry (a free swing keeps ~27% energy after 4 s, was 13%)
+  HAND_AIR_DRAG: 0.03,      // the hands carry most of the swing's air drag: lower lets one player swing across chain gaps
   TILT_PER_SPEED: 0.0006,   // cosmetic face lean (rad per px/s of sideways speed)
   TILT_MAX: 0.35,
 
@@ -43,6 +43,9 @@ Dangle.config = {
   RELAX_CAP: 0.3,           // free arm pull at neutral stick, in head weights
   PINNED_REACH: 0.45,       // gripping arm's aimed length (x REACH): short = real pull-ups
   PINNED_DAMP: 0.25,        // damping ratio of a gripping arm (low keeps swings alive)
+  PINNED_CROSS_DAMP: 1,     // share of that damping applied ACROSS the arm (along the swing)...
+  PINNED_CROSS_DAMP_CAP: 2.4, // ...capped at this many g: slow wobbles settle, a fast swing is braked less (Phase 11:
+                            // flings leave ~18% faster; lower caps let one player swing across chain gaps)
   ARM_SPREAD: 0.1,          // radians the hands fan apart around the aim (big = one hand can't reach walls)
   ARM_RELAX: 0.12,          // stiffness multiplier when the stick is neutral (arms dangle)
   ARM_RELAX_X: 34,          // relaxed hand offset from the head (px)
@@ -72,11 +75,12 @@ Dangle.config = {
   TRAMPOLINE_LAUNCH: 900,   // px/s upward on a fresh bounce (apex ~3.1 REACH)
   TRAMPOLINE_KEEP: 0.9,     // fraction of landing speed kept when it is faster than the launch
   WIND_LIFT: 1.15,          // default wind column lift, in g (net 0.15 g: a gentle float)
+  WIND_DRAG: 1.5,           // 1/s turbulence inside a wind column: floats settle (top speed ~100 px/s), no bobbing
   KILL_DEPTH: 700,          // px below the lowest floor where falling players respawn
   CHECKPOINT_SPACING: 5,    // REACH units of safe progress between auto checkpoints
-  PARTNER_SPAWN_LEAD: 1,
+  PARTNER_SPAWN_LEAD: 1,    // REACH units a partner must be ahead of the checkpoint to respawn beside them
   HEAVY_CRATE_SPEED: 80,    // px/s a two-player heavy crate slides while both push (co-op, physics/devices.js)
-  COOP_LIFT_SPEED: 110,     // px/s a counterweight lift rises while its handle is held    // REACH units a partner must be ahead of the checkpoint to respawn beside them
+  COOP_LIFT_SPEED: 110,     // px/s a counterweight lift rises while its handle is held
 
   // Level linter limits (tools/lint-levels.js). Distances are in REACH units. Each aid's limit is the widest span a
   // scripted player crosses (tools/gap-bots.js, tools/segment-bots.js), kept a little inside what the bots managed
@@ -87,8 +91,8 @@ Dangle.config = {
     GAP_ROPES_STEP_MAX: 1.1,    // spacing between two ropes (tools/segment-bots.js crosses 0.9-1.1R, not 1.2R)
     GAP_ROPES3_STEP_MAX: 1.0,   // spacing in a row of three or more (bots cross 0.9-1.0R, not 1.1R)
     GAP_MOVER_MAX: 8,       // moving bridge (timing, not reach, is the limit)
-    GAP_COOP_MAX: 2.0,      // chain bridge: one hangs off the lip, the other climbs over (co-op bot crosses 2.0R)
-    CHAIN_MIN: 1.9,         // ...and no narrower: a solo lip swing crosses 1.6R often, 2.0R in 1 of 80 timings
+    GAP_COOP_MAX: 2.1,      // chain bridge: one hangs off the lip, the other climbs over (co-op bot crosses 2.1R, not 2.2R)
+    CHAIN_MIN: 2.0,         // ...and no narrower: a solo lip swing crosses 1.9R in 5-9 of 80 timings, 2.0-2.1R in 1
     COOP_PLATE_MIN: 3,      // a plate or handle is this far from what it opens: one player can't do both
     COOP_WALL_MIN: 1.6,     // a no-grab wall that needs the partner (a lone player's hand reaches 1.18R up it)
     COOP_CRATE_RUN_MIN: 1.8,   // a heavy crate starts this far from its wall (its top can't reach the lip)

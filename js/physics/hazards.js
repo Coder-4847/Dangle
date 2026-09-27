@@ -22,18 +22,21 @@ window.Dangle = window.Dangle || {};
   }
 
   // Apply wind before the engine step. Force is mass-proportional (an acceleration), so a whole
-  // player, or a crate, is lifted uniformly and the arms feel no extra tension.
+  // player, or a crate, is lifted uniformly and the arms feel no extra tension. Inside the column the air
+  // is also turbulent (WIND_DRAG, an acceleration of -drag * velocity): a float settles instead of bobbing
+  // at the column's top, now that ordinary air drag is light enough for swings to carry.
   function preStep(W) {
     const L = W.level;
     if (!L.winds.length) return;
     const k = Dangle.World.FORCE_K;
+    const drag = cfg().WIND_DRAG;
     for (const z of L.winds) {
       for (const p of W.players) {
         if (p.dead) continue;
         for (const b of p.bodies) {
           if (inRect(b.position.x, b.position.y, z.x, z.y, z.w, z.h)) {
-            b.force.x += b.mass * z.ax * k;
-            b.force.y += b.mass * z.ay * k;
+            b.force.x += b.mass * (z.ax - drag * P().velX(b)) * k;
+            b.force.y += b.mass * (z.ay - drag * P().velY(b)) * k;
           }
         }
       }

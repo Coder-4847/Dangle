@@ -50,12 +50,24 @@ function climbStep(p, s, wx, topY, lean, dir, pull, tune) {
   const mOff = T.mantleOff === undefined ? 22 : T.mantleOff, gOff = T.grabOff === undefined ? 8 : T.grabOff;
   if (pull === undefined) pull = lean;
   const g = p.grab, H = p.head.position;
-  if (s.top) { set(p, 0.5 * dir, 0); return; }
+  if (s.top) {
+    // Balanced on the corner (half a second without getting past it): crawl onto the top instead of leaning.
+    s.corner = (H.x - wx) * dir < 12 ? (s.corner || 0) + 1 : 0;
+    if (s.corner > 60 || s.cr) { s.cr = s.cr || {}; crawlStep(p, s.cr, dir, 0, dir, 0.1); } else set(p, 0.5 * dir, 0);
+    return;
+  }
   if (H.y < topY - 4 && (H.x - wx) * dir > 8) { s.top = true; set(p, 0.5 * dir, 0); return; }
   // A grip near the lip: shove down-away so the gripping arms throw the head up and over it.
-  if ((g[0].pin && p.hands[0].position.y < topY + mOff || g[1].pin && p.hands[1].position.y < topY + mOff) && H.y < topY + 90) { set(p, -0.7 * dir, 0.7, g[0].pin, g[1].pin); return; }
+  if ((g[0].pin && p.hands[0].position.y < topY + mOff || g[1].pin && p.hands[1].position.y < topY + mOff) && H.y < topY + 90) {
+    // A grip just below the top jams the head on the corner: after a stalled heave, push straight up instead.
+    s.jam = speed(p.head) < 20 || s.jam > 45 ? (s.jam || 0) + 1 : 0;      // once stalled, push up for ~1 s
+    if (s.jam > 165) s.jam = 0;
+    if (s.jam > 45) set(p, -0.15 * dir, 1, g[0].pin, g[1].pin); else set(p, -0.7 * dir, 0.7, g[0].pin, g[1].pin);
+    return;
+  }
   if (s.holder === undefined) {
-    const up = (h) => h.position.y < H.y - 60 || h.position.y < topY - gOff;      // well above the head, or resting on the lip surface
+    // well above the head, or resting on the lip surface (T.wallOnly: and on the wall's side, never behind us)
+    const up = (h) => (!T.wallOnly || (h.position.x - wx) * dir > -30) && (h.position.y < H.y - 60 || h.position.y < topY - gOff);
     // First reach: up along the face (for a low step, to just above the lip); the grip then heaves the head over.
     const above = Math.min(p.hands[0].position.y, p.hands[1].position.y) < topY - 20;    // a hand is over the lip: reach onto the top
     const overshoot = above ? Math.max(0, topY - 12 - Math.min(p.hands[0].position.y, p.hands[1].position.y)) : 0;   // the hand hovers above the top: aim lower
@@ -329,10 +341,21 @@ function* crateWall(ctx, crate, wx, topY) {
 }
 
 // Wind rise beside a no-grab wall: let the updraft carry you, then reach over the lip (its top stays grabbable).
+// Neutral stick while rising (pressing the slippery face only pushes you away from it), then once the head is up
+// near the lip, reach over it onto the top, grab and heave.
 function* floatUp(ctx, wx, topY) {
   const p = ctx.p;
-  for (let i = 0; i < 20 * STEPS && p.head.position.y > topY + 100; i++) { set(p, 0.3, -0.2, false, false); yield; }
-  return yield* climbWall(ctx, wx, topY);
+  for (let i = 0; i < 20 * STEPS && p.head.position.y > topY - 10; i++) { set(p, 0, 0, false, false); yield; }   // float up past the lip
+  for (let i = 0; i < 12 * STEPS; i++) {
+    const g = p.grab[0].pin && !p.grab[0].target.dg.owner ? 0 : p.grab[1].pin && !p.grab[1].target.dg.owner ? 1 : -1;
+    if (g >= 0) break;
+    const dx = wx + 22 - p.head.position.x, dy = topY - 16 - p.head.position.y, d = Math.hypot(dx, dy) || 1;
+    const m = Math.max(0.3, Math.min(1, d / R));
+    const on = (h) => h.position.y < topY - 2 && h.position.x > wx;                     // above the top surface
+    set(p, dx / d * m, dy / d * m, on(p.hands[0]), on(p.hands[1]));
+    yield;
+  }
+  return yield* climbWall(ctx, wx, topY, 1, 0.55, undefined, undefined, { keepGrip: true });
 }
 
 // Rising tide: crawl the stretch, then climb the wall that ends it (if any). t = spec.tides entry; the run() driver
@@ -384,9 +407,18 @@ function* rideLift(ctx, body, l, fy) {
 function* bounceUp(ctx, b, fy, ledgeEdgeX) {
   if (!(yield* toEdge(ctx, ledgeEdgeX, -10, true))) return false;
   const wx = b.x + R, topY = b.y - b.h * R;
+  // Hands off until the pad throws us up (grabbing the ledge lip on the way down would leave us dangling).
+  let dropped = false;
+  for (let i = 0; i < 3 * STEPS; i++) {
+    if (ctx.p.head.position.y > fy + 20) dropped = true;               // fell below the ledge, onto/toward the pad
+    if (dropped && vy(ctx.p.head) < -300) break;                     // ...and the pad has thrown us up
+    set(ctx.p, 0, dropped ? 0 : -0.6, false, false); yield;             // hands up: dragged along the ledge they'd brake the head
+  }
+  // Still hands off while the throw is fast: reaching now would shove the head back, away from the wall.
+  for (let i = 0; i < STEPS && vy(ctx.p.head) < -350; i++) { set(ctx.p, 0, 0, false, false); yield; }
   const s = {};
   for (let i = 0; i < 20 * STEPS; i++) {
-    climbStep(ctx.p, s, wx, topY, 0.55, 1, undefined, undefined);
+    climbStep(ctx.p, s, wx, topY, 0.55, 1, undefined, { wallOnly: true });
     if (s.top && ctx.p.head.position.x - wx > 12 && ctx.p.head.position.y < topY - 10 && speed(ctx.p.head) < 30) return true;
     yield;
   }

@@ -279,7 +279,7 @@ if (require.main === module) {
   for (const [dist, h] of [[3, 3], [3.2, 3], [4, 2.4]]) test(`gate plate ${dist}R`, () => { const s = mk([['gate', { dist, h }], ['heavyCrate', {}]]); return crossTask(s, s.coopTasks[0]); });
   for (const h of [2.2, 2.6, 3.5]) test(`lever lift ${h}R`, () => { const s = mk([['leverLift', { h }], ['gate', {}]]); return crossTask(s, s.coopTasks[0]); });
   for (const [h, run] of [[1.7, 1.8], [1.9, 2.5], [1.9, 3.5]]) test(`heavy crate wall ${h}R run ${run}R`, () => { const s = mk([['heavyCrate', { h, run }], ['gate', {}]]); return crossTask(s, s.coopTasks[0]); });
-  for (const w of [1.9, 2.0]) for (const floor of ['spikes', 'lava']) test(`chain gap ${w}R over ${floor}`, () => { const s = mk([['gap', { w, aid: 'chain', floor, land: 2.5 }], ['gate', {}]]); return crossTask(s, s.coopTasks[0]); });
+  for (const w of [2.0, 2.1]) for (const floor of ['spikes', 'lava']) test(`chain gap ${w}R over ${floor}`, () => { const s = mk([['gap', { w, aid: 'chain', floor, land: 2.5 }], ['gate', {}]]); return crossTask(s, s.coopTasks[0]); });
 
   // One player alone: the device rules must hold (deterministic), and nothing else gets them past.
   test('solo: gate closes before a lone player reaches it', () => {

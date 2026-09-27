@@ -56,11 +56,12 @@ The master prompt is `docs/MASTER_PROMPT.md` (saved unchanged). The user re-uplo
 | 8 | Co-op mode + co-op campaigns 1-5 (25) | Opus 5.5 (override) | done (`Phase 8: Co-op mode and campaigns 1-5`) |
 | 9 | Co-op campaigns 6-10 (50) | Sonnet 5 | done (`Phase 9: Co-op campaigns 6-10`) |
 | 10 | Audio, juice, full QA (+ draft README) | Sonnet 5 | done (`Phase 10: Audio, juice, and full QA`) |
-| gate | **user plays and confirms** | n/a | **NEXT: waiting on you** |
-| 11 | Final refine + GitHub | Opus 5.5 | todo |
+| gate | user plays and confirms | n/a | passed (user: "Continue with Phase 11") |
+| 11 | Final refine, swing feel, GitHub + Pages | Opus 5.5 | done (`Phase 11: ...`), pushed |
 
-To start the next chat: upload the master prompt, link the folder, and say: *"Read memory.md, CLAUDE.md and
-PROGRESS.md, then say the game works to pass the confirmation gate."* Phase 11 does not start until you say so. (switch to the right model first).
+**All phases are done.** Repo: https://github.com/Coder-4847/Dangle (public, branch `main`, remote `origin`).
+Live: https://coder-4847.github.io/Dangle/ (GitHub Pages from `main` / root; every push to main redeploys).
+Future work = bug fixes / polish on request: commit locally, run check-all, push only when the user asks.
 
 ## 4. Environment gotchas (Windows, this machine)
 
@@ -157,6 +158,11 @@ Final tuned values (see `js/config.js`, do not retune without a reason): STEP 1/
 1000, REACH 130, HEAD_MASS 6, HAND_MASS 1, ARM_FREQ 13, ARM_DAMP 0.7, ARM_FORCE_CAP 1.9, FREE_ARM_CAP 0.45,
 RELAX_CAP 0.3, PINNED_REACH 0.45, PINNED_DAMP 0.25, ARM_RELAX 0.12, ARM_MAX_STRETCH 1.25, AIM_DEADZONE 0.18,
 GRAB_REEL 700, TRAMPOLINE_LAUNCH 900, WIND_LIFT 1.15 g, RESPAWN_DELAY_SOLO 0.9 / COOP 1.5.
+**Phase 11 swing feel**: a gripping arm damps fully ALONG the arm but ACROSS it (along the swing) only up to
+`PINNED_CROSS_DAMP_CAP` 2.4 g; `HEAD_AIR_DRAG` 0.0015 (was 0.003); `HAND_AIR_DRAG` stays 0.03 (it is most of a swing's
+damping); `WIND_DRAG` 1.5/s inside wind columns (no bobbing). Looser swings = longer flings = a lone player can lip-swing
+over co-op chain gaps: any retune must re-run `node tools/coop-solo-swing.js 2.0` (target ~1/80) and
+`node tools/coop-bots.js` (chain gaps 2.0-2.1R, `LINT.CHAIN_MIN` 2.0 / `GAP_COOP_MAX` 2.1).
 **Matter.js stays** (its friction/constraint weaknesses are patched locally; ~0.03 ms/step for 2 players).
 
 ## 7. Level engine (Phase 3)
@@ -219,17 +225,12 @@ fully done; modes independent; `?dev=1` unlocks everything.
 URL params: `?dev=1`, `?level=<id>` (skip menus; test-h, test-v, test-all, sandbox, solo-2-3 ...), `?players=n`,
 `?theme=<id>`, `?stress=1` / `?stress=<name>`.
 
-## 9. Placeholder levels (important for Phases 6-9)
+## 9. Campaign levels
 
-`js/levels/campaigns.js` generates a deterministic **placeholder** for every campaign id that has no registered
-definition (`def.stub = true`), from the campaign's signature obstacle pool (POOLS 1-10, `OB` makers with difficulty
-t in 0..1, height bookkeeping, Frozen Peaks alternates vertical levels). They pass lint and smoke, so menus, unlocks
-and flow work today. **Phases 6-9 replace them** by calling `Dangle.Levels.register({...})` with the same ids
-(recommended: new files `js/levels/solo-campaigns.js` / `coop-campaigns.js`, loaded before `test-levels.js`... the
-registry lookup is `get(id)` first, then the stub, so order only matters for lint/tools loading; add the new files to
-`index.html` and to the file lists in `tools/lint-levels.js` (already tries `levels/campaigns`), `tools/level-smoke.js`
-and `tools/sim-test.js`/`gap-bots.js` if they need them). Level names: `Campaigns.levelName(c, n)` is used by the HUD
-unless the def sets its own `name`.
+All 150 ids are authored in `solo-campaigns(-2).js` / `coop-campaigns(-2).js` via `Levels.register`. The Phase 3
+placeholder generator was removed in Phase 11; `Levels.all()` throws if a campaign slot has no definition. New level
+files go in `index.html` and the file lists of tools/lint-levels.js, level-smoke.js and level-bot.js. Level names:
+`Campaigns.levelName(c, n)` is used by the HUD unless the def sets its own `name`.
 
 Campaign table: 1 Sunny Meadow (5, meadow: learn grab/swing/heave, safe drops), 2 Bamboo Grove (5, bamboo: vines,
 ropes, pendulums), 3 Lantern Caves (5, caves: dark, narrow swings), 4 Salt Flats (5, salt: long gaps, wind, crates),
@@ -239,11 +240,6 @@ ropes, pendulums), 3 Lantern Caves (5, caves: dark, narrow swings), 4 Salt Flats
 signature "boss-style" level. Difficulty ramps inside each campaign and across campaigns; campaigns 6-10 are a step up.
 Solo levels must be solvable by one player; co-op levels must *require* two (chain bridges, boost throws, hold-open
 plates, two-grab crates, counterweights; co-op-only mechanics are Phase 8).
-
-**Phase 6 status**: `js/levels/solo-campaigns.js` holds the real `solo-1-1`..`solo-5-5` (short helper functions
-`start/goal/ledge/gap/rope/ropes/beamGap/up/down/wall/beamRun/ice/windRise/crate` build the segment lists). Solo
-campaigns 6-10 and all co-op ids are still generated placeholders. Add new files after `campaigns.js` in `index.html`
-and in the file lists of tools/lint-levels.js, level-smoke.js and level-bot.js (bots.js loads its own list).
 
 ## 10. Art (Phase 4)
 
@@ -261,7 +257,7 @@ blinking); squash-and-stretch and landing dust; pooled particles (600) + subtle 
 
 `tools/sim-test.js` (16 physics stress scenarios in `js/dev/stress.js`; also `index.html?stress=1`),
 `tools/lint-levels.js` (+ `--selftest`, lints all 154 defs), `tools/gap-bots.js`, `tools/segment-bots.js` (45 obstacle
-cases; `--probe` runs cases beyond the limits), `tools/level-bot.js` (every obstacle of every authored solo level: 75),
+cases; `--probe` runs cases beyond the limits), `tools/level-bot.js` (every obstacle of all 151 authored levels, co-op via coop-bots.js), `tools/coop-bots.js`,
 `tools/progress-test.js` (34 checks),
 `tools/level-smoke.js` (sample: registered + first/last level of each campaign in both modes; `--all` = all 153 in
 ~55 s: settle, checkpoint, hazard/fall death + timed respawn, completion needs everyone, trampoline/wind/tide/mover
@@ -278,30 +274,22 @@ proven by a search over release points from a canonical stance (`placeAt` = chec
 continuous run. `level-bot.js` does the same for every obstacle, so it proves 'each obstacle is crossable with this
 level's exact options', not a single continuous playthrough. Debug with `TRACE=1 EVERY=30 node tools/level-bot.js <id>`.
 
-**Phase 9 status**: every one of the 150 campaign ids (solo 1-10, co-op 1-10) is now an authored definition, across
-`solo-campaigns.js` / `solo-campaigns-2.js` / `coop-campaigns.js` (exports `Levels.dsl` + `Levels.dslCoop`) /
-`coop-campaigns-2.js`. The placeholder generator in `campaigns.js` (`stub`) is unreferenced for real play (a
-registered def always wins in `find`); Phase 11 cleanup can remove it.
+## 12. Guidance after Phase 11
 
-## 12. Guidance for the confirmation gate, then Phase 11
-
-- **Do not start Phase 11 until the user explicitly says the game works and asks to continue** (the master prompt's
-  confirmation gate). If they report bugs first, fix them in place (still "Phase 10", no new phase header needed)
-  before asking again, per the working protocol.
-- README.md is drafted; Phase 11 finalizes it (screenshots optional, LICENSE if wanted).
 - Audio: `js/core/audio.js` (`Dangle.Audio`), wired through `physics/grab.js` (grab/release events), `game.js`
   (`Audio.consume(W)` beside `Fx.consume(W)`, blur/focus suspend/resume), `render/draw-player.js` (landing, creak),
   `ui/menus.js` (`moveSel` for the move tick, `Menu.update` for confirm/back/click). `config.js` AUDIO_* constants.
   If the user wants sounds retuned: gains are named per-sound in audio.js (not spread across callers).
-- Phase 11 (Opus): visual/feel/level review, code cleanup (keep `?dev=1` tools), finalise README, ask the user for
-  repo name/URL + public/private, add GitHub Pages deploy, push only then. `reference/` stays ignored.
+- Pages is a plain static deploy of the repo root (no workflow file, no build). `reference/` stays gitignored; never
+  commit it. No LICENSE was added (user didn't ask).
+- Bot fallbacks added in Phase 11 (`tools/bots.js` `climbStep`): `s.jam` (heave stalled on a corner -> push straight
+  up) and `s.corner`/`s.cr` (balanced on the corner -> crawl onto the top).
 
-## 13. Known issues and honest caveats (as of Phase 10)
+## 13. Known issues and honest caveats (as of Phase 11)
 
 - Hands-on feel is unverified by a human. GPU frame time was never measured (hidden preview pane): the user should
   check the fps in the debug overlay (`~` key; always available) at 1P, 2P zoomed out and in Lantern Caves.
-- All 150 campaign levels are authored (Phases 6-9); none are placeholders any more. Partner respawn was broken
-  until Phase 8. Level HUD title is `Campaign Name N` (no per-level names).
+- All 150 campaign levels are authored (Phases 6-9). Level HUD title is `Campaign Name N` (no per-level names).
 - Audio is synthesized SFX only (js/core/audio.js): grab/release/creak/landing/hazard/checkpoint/goal/bounce/UI. No
   separate ambience track. Exact levels are unverified by ear (headless tools can't hear); retune `AUDIO_MASTER_TRIM`
   (config.js) or the per-sound gains in audio.js if the user says something is too loud/quiet. HUD text is functional, not final.

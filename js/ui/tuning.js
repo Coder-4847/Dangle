@@ -12,6 +12,7 @@ window.Dangle = window.Dangle || {};
     ['FREE_ARM_CAP', 'Reach push cap (head weights)', 0.2, 2, 0.05],
     ['PINNED_REACH', 'Grip arm length (x reach)', 0.1, 1, 0.01],
     ['PINNED_DAMP', 'Grip arm damping', 0, 1, 0.01],
+    ['PINNED_CROSS_DAMP_CAP', 'Swing brake cap (g)', 0, 6, 0.1],
     ['ARM_RELAX', 'Relaxed arm stiffness', 0, 0.5, 0.01],
     ['HEAD_MASS', 'Head mass', 2, 20, 0.5],
     ['HAND_MASS', 'Hand mass', 0.5, 6, 0.1],
@@ -21,7 +22,7 @@ window.Dangle = window.Dangle || {};
     ['GRAB_COYOTE', 'Grab coyote (s)', 0, 0.25, 0.01],
     ['HEAD_GRIP', 'Head floor grip (g)', 0, 2, 0.05],
     ['HAND_GRIP', 'Hand floor grip (g)', 0, 5, 0.1],
-    ['HEAD_AIR_DRAG', 'Head air drag', 0, 0.03, 0.001],
+    ['HEAD_AIR_DRAG', 'Head air drag', 0, 0.03, 0.0005],
     ['HAND_AIR_DRAG', 'Hand air drag', 0, 0.1, 0.005],
     ['MAX_HEAD_SPEED', 'Max head speed', 800, 4000, 50],
   ];
@@ -49,7 +50,7 @@ window.Dangle = window.Dangle || {};
     return Promise.resolve();
   }
 
-  function fmt(v, step) { return step < 0.01 ? v.toFixed(3) : step < 1 ? v.toFixed(2) : String(Math.round(v)); }
+  function fmt(v, step) { return step < 0.001 ? v.toFixed(4) : step < 0.01 ? v.toFixed(3) :step < 1 ? v.toFixed(2) : String(Math.round(v)); }
 
   function el(tag, cls, text) {
     const e = document.createElement(tag);
