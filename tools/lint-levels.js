@@ -5,7 +5,7 @@
 // Runs on plain data only: no Matter, no DOM. Exit code 1 if any level has an error.
 const path = require('path');
 global.window = global;
-for (const f of ['config', 'levels/builder', 'levels/segments', 'levels/segments-coop', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2', 'levels/coop-campaigns']) {
+for (const f of ['config', 'levels/builder', 'levels/segments', 'levels/segments-coop', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2', 'levels/coop-campaigns', 'levels/coop-campaigns-2']) {
   try { require(path.join('..', 'js', f + '.js')); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 }
 const D = global.Dangle;

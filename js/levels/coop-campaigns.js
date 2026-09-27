@@ -21,6 +21,9 @@ window.Dangle = window.Dangle || {};
   const chain = (w, floor) => ['gap', { w, aid: 'chain', floor: floor || 'spikes', land: 2 }];
   const S = { floor: 'spikes' };
 
+  // Shared with coop-campaigns-2.js (6-10), the way solo-campaigns.js exports `L.dsl`.
+  L.dslCoop = { gate, lever, heavy, chain };
+
   const defs = {
     // ---------------------------------------------------------------- 1 Sunny Meadow: plates, the heavy crate, the lift
     'coop-1-1': [start(), gate(), gap(0.6), up(0.5), gate(3.4), down(0.5), goal()],

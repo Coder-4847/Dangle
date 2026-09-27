@@ -295,3 +295,33 @@ at the checkpoint. Hold R restarts in any case.
 Known / needs your hands: the chain bridge is physics (the bots search 32 climber timings/aims, and it only became
 reliable once the anchor leans out firmly; people will find their own rhythm, but it may feel fiddly); gate/lift waits
 are ~1-2 s; gate towers are tall (the camera shows them only up close); the co-op pace on one keyboard.
+
+## Phase 9 — Co-op campaigns 6-10, 50 levels (done, Sonnet 5)
+Built: `js/levels/coop-campaigns-2.js` registers `coop-6-1` .. `coop-10-10` (21-131 R, 3-25 obstacles; bot estimate
+38-296 s). Every one of the 150 campaign level ids (solo 1-10 + co-op 1-10) is now an authored definition; the
+placeholder generator in `campaigns.js` is unreferenced for real play (kept for Phase 11 to remove, since a registered
+def always wins over `find`'s stub fallback). Co-op mechanics are unchanged from Phase 8 (gate, leverLift, heavyCrate,
+chain gap); this phase combines them with the Phase 7 solo mechanics (tide, mover, wind rise, bounce, no-grab shafts)
+and pushes their own ranges further, all bot-verified first (`tools/coop-bots.js`, quick extra checks before
+authoring): lever lift up to 5.5R (the platform carries you all the way up, no wall climb at the top, so height alone
+never adds difficulty the way a climbable wall does), gate plate distance up to 6R, heavy crate wall up to 2.2R
+(2.5R fails: the crate-then-wall climb runs out); levels stay a margin under each. Chain gaps stay 1.9-2.0R, now over
+spikes, lava or water (the fall is the same hazard death regardless of floor).
+- 6 Tidal Ruins: tides bracket gates, lifts and chains (rising water as backdrop tension, not a new synchronised
+  mechanic: a tide never has to be "held off" by a gate, that would need a new device). 7 Clockwork Works: sliding
+  bridges and lifts next to the co-op devices, often back to back. 8 Sky Islands: springboards and wind woven with
+  chains and gates, big drops. 9 Ember Depths: lava tides, lava-floored chains, no-grab wind shafts (`nog`). 10 The
+  Big Dangle: all of it; 10-10 is the biggest level yet (131R, 25 obstacles, both bots estimate ~5 minutes).
+- `coop-campaigns.js` now also exports `Levels.dslCoop` (`gate/lever/heavy/chain`) alongside solo's `Levels.dsl`, so
+  the second co-op file only needs to import both.
+- One lint gap found and fixed while authoring: the first level of each new campaign only had one co-op obstacle
+  (its intro gate/chain) - the "2+ co-op obstacles" rule (Phase 8) caught all four immediately; each got a second,
+  gentle one (a small chain, heavy crate, or gate) rather than loosening the rule.
+Verification (`node tools/check-all.js`, green): lint 155 defs (unchanged known-bad set: no new rules needed, Phase 8's
+already cover chain/gate/lift/crate limits and the "2+ obstacles" count), level bot over all 151 authored levels (150
+campaign + test-coop; co-op obstacles run through two bots, everything else through one, as in Phases 6-8), smoke
+`--all` on all 150 campaign levels (clean unload, partner respawn, device open/close, one-player-can't-move-a-crate).
+All 50 new levels load in the browser with 2 players and no console errors.
+Known / needs your hands: same caveats as Phases 6-8 (nobody has played any of this by hand yet); 10-10 in particular
+is long enough that its pace on one keyboard is worth checking; lever lifts above ~4R make for a long ride with
+nothing to do but wait, worth a feel check.

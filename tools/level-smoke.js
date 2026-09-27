@@ -13,7 +13,7 @@ if (!global.gc) {   // need a forced GC for the memory check: re-run ourselves w
 global.window = global;
 global.Matter = require('../js/lib/matter.min.js');
 for (const f of ['config', 'core/characters', 'core/loop', 'physics/world', 'physics/grab', 'physics/player', 'physics/surfaces', 'physics/hazards', 'physics/devices',
-  'levels/builder', 'levels/segments', 'levels/segments-coop', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2', 'levels/coop-campaigns', 'levels/loader']) {
+  'levels/builder', 'levels/segments', 'levels/segments-coop', 'levels/levels', 'levels/themes', 'levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2', 'levels/coop-campaigns', 'levels/coop-campaigns-2', 'levels/loader']) {
   try { require(path.join('..', 'js', f + '.js')); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 }
 const D = global.Dangle;

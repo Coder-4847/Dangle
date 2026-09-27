@@ -12,7 +12,7 @@
 // the second with the first one's help or the partner-respawn catch-up); every other obstacle by one bot, as in solo.
 const path = require('path');
 const B = require('./bots.js');
-for (const f of ['levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2', 'levels/coop-campaigns']) {
+for (const f of ['levels/test-levels', 'levels/campaigns', 'levels/solo-campaigns', 'levels/solo-campaigns-2', 'levels/coop-campaigns', 'levels/coop-campaigns-2']) {
   try { require(path.join('..', 'js', f + '.js')); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 }
 const { D, R, run, crawlTo, placeAt, dropOff, climbWall, plainGap, ropeCross, beamHang, iceUp, crateWall, settle, floatUp, crossTide, rideMover, rideLift, bounceUp } = B;
